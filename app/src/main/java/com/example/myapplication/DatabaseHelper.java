@@ -11,11 +11,16 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Calendar;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "CampusExpenseManager.db";
     private static final int DATABASE_VERSION = 4;
+
+    private static DatabaseHelper instance;
 
     // Tables
     private static final String TABLE_USERS = "users";
@@ -33,14 +38,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_AMOUNT = "amount";
     private static final String COLUMN_DESCRIPTION = "description";
     private static final String COLUMN_CATEGORY = "category";
-    private static final String COLUMN_DATE = "date";
+    private static final String COLUMN_DATE = "date"; // Format: "yyyy-MM-dd"
 
     // Category Budgets columns
-    private static final String COLUMN_MONTH_YEAR = "month_year";
+    private static final String COLUMN_MONTH_YEAR = "month_year"; // Format: "yyyy-MM"
     private static final String COLUMN_CATEGORY_NAME = "category_name";
     private static final String COLUMN_BUDGETED_AMOUNT = "budgeted_amount";
 
-    public DatabaseHelper(Context context) {
+    public static synchronized DatabaseHelper getInstance(Context context) {
+        if (instance == null) {
+            instance = new DatabaseHelper(context.getApplicationContext());
+        }
+        return instance;
+    }
+
+    private DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
@@ -83,42 +95,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_EMAIL, email);
         values.put(COLUMN_PASSWORD, BCrypt.hashpw(password, BCrypt.gensalt()));
-        long result = db.insert(TABLE_USERS, null, values);
-        db.close();
-        return result;
+        return db.insert(TABLE_USERS, null, values);
     }
 
     public boolean checkUser(String email, String password) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = null;
+        Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_PASSWORD}, COLUMN_EMAIL + " = ?", new String[]{email}, null, null, null);
         try {
-            String[] columns = {COLUMN_PASSWORD};
-            String selection = COLUMN_EMAIL + " = ?";
-            String[] selectionArgs = {email};
-            cursor = db.query(TABLE_USERS, columns, selection, selectionArgs, null, null, null);
             if (cursor != null && cursor.moveToFirst()) {
                 String hashedPassword = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PASSWORD));
                 return BCrypt.checkpw(password, hashedPassword);
             }
         } finally {
             if (cursor != null) cursor.close();
-            db.close();
         }
         return false;
     }
 
     public boolean checkUser(String email) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = null;
+        Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_ID}, COLUMN_EMAIL + " = ?", new String[]{email}, null, null, null);
         try {
-            String[] columns = {COLUMN_ID};
-            String selection = COLUMN_EMAIL + " = ?";
-            String[] selectionArgs = {email};
-            cursor = db.query(TABLE_USERS, columns, selection, selectionArgs, null, null, null);
-            return cursor.getCount() > 0;
+            return (cursor.getCount() > 0);
         } finally {
             if (cursor != null) cursor.close();
-            db.close();
         }
     }
 
@@ -126,9 +126,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_PASSWORD, BCrypt.hashpw(newPassword, BCrypt.gensalt()));
-        int result = db.update(TABLE_USERS, values, COLUMN_EMAIL + " = ?", new String[]{email});
-        db.close();
-        return result > 0;
+        return db.update(TABLE_USERS, values, COLUMN_EMAIL + " = ?", new String[]{email}) > 0;
     }
 
     // --- Expense methods ---
@@ -139,33 +137,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_DESCRIPTION, description);
         values.put(COLUMN_CATEGORY, category);
         values.put(COLUMN_DATE, date);
-        long result = db.insert(TABLE_EXPENSES, null, values);
-        db.close();
-        return result;
+        return db.insert(TABLE_EXPENSES, null, values);
     }
 
     public List<Expense> searchExpenses(String startDate, String endDate, String category) {
         List<Expense> expenseList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = null;
+        StringBuilder selection = new StringBuilder();
+        List<String> selectionArgs = new ArrayList<>();
+        if (!TextUtils.isEmpty(startDate)) {
+            selection.append(COLUMN_DATE + " >= ?");
+            selectionArgs.add(startDate);
+        }
+        if (!TextUtils.isEmpty(endDate)) {
+            if (selection.length() > 0) selection.append(" AND ");
+            selection.append(COLUMN_DATE + " <= ?");
+            selectionArgs.add(endDate);
+        }
+        if (!TextUtils.isEmpty(category) && !"All".equalsIgnoreCase(category)) {
+            if (selection.length() > 0) selection.append(" AND ");
+            selection.append(COLUMN_CATEGORY + " = ?");
+            selectionArgs.add(category);
+        }
+        Cursor cursor = db.query(TABLE_EXPENSES, null, selection.length() > 0 ? selection.toString() : null, selectionArgs.toArray(new String[0]), null, null, COLUMN_DATE + " DESC");
         try {
-            StringBuilder selection = new StringBuilder();
-            List<String> selectionArgs = new ArrayList<>();
-            if (!TextUtils.isEmpty(startDate)) {
-                selection.append(COLUMN_DATE + " >= ?");
-                selectionArgs.add(startDate);
-            }
-            if (!TextUtils.isEmpty(endDate)) {
-                if (selection.length() > 0) selection.append(" AND ");
-                selection.append(COLUMN_DATE + " <= ?");
-                selectionArgs.add(endDate);
-            }
-            if (!TextUtils.isEmpty(category) && !"All".equalsIgnoreCase(category)) {
-                if (selection.length() > 0) selection.append(" AND ");
-                selection.append(COLUMN_CATEGORY + " = ?");
-                selectionArgs.add(category);
-            }
-            cursor = db.query(TABLE_EXPENSES, null, selection.length() > 0 ? selection.toString() : null, selectionArgs.toArray(new String[0]), null, null, COLUMN_DATE + " DESC");
             if (cursor.moveToFirst()) {
                 do {
                     Expense expense = new Expense();
@@ -179,7 +174,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         } finally {
             if (cursor != null) cursor.close();
-            db.close();
         }
         return expenseList;
     }
@@ -191,15 +185,106 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_DESCRIPTION, description);
         values.put(COLUMN_CATEGORY, category);
         values.put(COLUMN_DATE, date);
-        int result = db.update(TABLE_EXPENSES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
-        db.close();
-        return result;
+        return db.update(TABLE_EXPENSES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
     public void deleteExpense(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_EXPENSES, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
-        db.close();
+    }
+
+    // --- Dashboard & Alert Methods ---
+    public double getTotalSpendingForMonth(String monthYear) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        double total = 0;
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COLUMN_AMOUNT + ") FROM " + TABLE_EXPENSES + " WHERE " + COLUMN_DATE + " LIKE ?", new String[]{monthYear + "%"});
+        try {
+            if (cursor.moveToFirst()) {
+                total = cursor.getDouble(0);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return total;
+    }
+
+    public double getTotalBudgetForMonth(String monthYear) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        double total = 0;
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COLUMN_BUDGETED_AMOUNT + ") FROM " + TABLE_CATEGORY_BUDGETS + " WHERE " + COLUMN_MONTH_YEAR + " = ?", new String[]{monthYear});
+        try {
+            if (cursor.moveToFirst()) {
+                total = cursor.getDouble(0);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return total;
+    }
+
+    public List<CategorySpending> getSpendingByCategoryForMonth(String monthYear) {
+        List<CategorySpending> spendingList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_CATEGORY + ", SUM(" + COLUMN_AMOUNT + ") FROM " + TABLE_EXPENSES + " WHERE " + COLUMN_DATE + " LIKE ? AND " + COLUMN_CATEGORY + " IS NOT NULL" + " GROUP BY " + COLUMN_CATEGORY, new String[]{monthYear + "%"});
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    String category = cursor.getString(0);
+                    double amount = cursor.getDouble(1);
+                    spendingList.add(new CategorySpending(category, amount));
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return spendingList;
+    }
+
+    public List<MonthlySpending> getMonthlySpendingTrend(int numberOfMonths) {
+        List<MonthlySpending> trendList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT SUBSTR(" + COLUMN_DATE + ", 1, 7) as month, SUM(" + COLUMN_AMOUNT + ") FROM " + TABLE_EXPENSES + " GROUP BY month ORDER BY month DESC LIMIT ?", new String[]{String.valueOf(numberOfMonths)});
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    String monthYear = cursor.getString(0);
+                    double amount = cursor.getDouble(1);
+                    trendList.add(new MonthlySpending(monthYear, amount));
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        java.util.Collections.reverse(trendList);
+        return trendList;
+    }
+
+    public double getCategorySpendingForMonth(String category, String monthYear) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        double total = 0;
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COLUMN_AMOUNT + ") FROM " + TABLE_EXPENSES + " WHERE " + COLUMN_CATEGORY + " = ? AND " + COLUMN_DATE + " LIKE ?", new String[]{category, monthYear + "%"});
+        try {
+            if (cursor.moveToFirst()) {
+                total = cursor.getDouble(0);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return total;
+    }
+
+    public double getBudgetForCategory(String category, String monthYear) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        double budgetAmount = 0.0;
+        Cursor cursor = db.rawQuery("SELECT " + COLUMN_BUDGETED_AMOUNT + " FROM " + TABLE_CATEGORY_BUDGETS + " WHERE " + COLUMN_CATEGORY_NAME + " = ? AND " + COLUMN_MONTH_YEAR + " = ?", new String[]{category, monthYear});
+        try {
+            if (cursor.moveToFirst()) {
+                budgetAmount = cursor.getDouble(0);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return budgetAmount;
     }
 
     // --- Category Budget methods ---
@@ -218,16 +303,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
-            db.close();
         }
     }
 
     public List<CategoryBudget> getCategoryBudgetsForMonth(String monthYear) {
         List<CategoryBudget> budgetList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = null;
+        Cursor cursor = db.query(TABLE_CATEGORY_BUDGETS, null, COLUMN_MONTH_YEAR + " = ?", new String[]{monthYear}, null, null, null);
         try {
-            cursor = db.query(TABLE_CATEGORY_BUDGETS, null, COLUMN_MONTH_YEAR + " = ?", new String[]{monthYear}, null, null, null);
             if (cursor.moveToFirst()) {
                 do {
                     CategoryBudget budget = new CategoryBudget();
@@ -240,8 +323,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         } finally {
             if (cursor != null) cursor.close();
-            db.close();
         }
         return budgetList;
+    }
+
+    // --- Data Holder Classes ---
+    public static class CategorySpending {
+        public final String category;
+        public final double totalAmount;
+
+        public CategorySpending(String category, double totalAmount) {
+            this.category = category;
+            this.totalAmount = totalAmount;
+        }
+    }
+
+    public static class MonthlySpending {
+        public final String monthYear;
+        public final double totalAmount;
+
+        public MonthlySpending(String monthYear, double totalAmount) {
+            this.monthYear = monthYear;
+            this.totalAmount = totalAmount;
+        }
     }
 }

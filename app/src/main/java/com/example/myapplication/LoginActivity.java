@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
@@ -22,7 +23,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        db = new DatabaseHelper(this);
+        db = DatabaseHelper.getInstance(this);
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPassword = findViewById(R.id.editTextPassword);
         buttonLogin = findViewById(R.id.buttonLogin);
@@ -40,9 +41,14 @@ public class LoginActivity extends AppCompatActivity {
 
             boolean isAuthenticated = db.checkUser(email, password);
             if (isAuthenticated) {
+                // Save email to SharedPreferences
+                SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("USER_EMAIL", email);
+                editor.apply();
+
                 Toast.makeText(getApplicationContext(), "Login successful", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                intent.putExtra("USER_EMAIL", email);
                 startActivity(intent);
                 finish();
             } else {

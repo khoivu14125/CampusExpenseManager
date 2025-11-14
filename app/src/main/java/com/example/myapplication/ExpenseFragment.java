@@ -42,10 +42,13 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
     private TextInputEditText startDateEditText, endDateEditText;
     private AutoCompleteTextView searchCategoryAutoCompleteTextView;
 
+    private final SimpleDateFormat dbDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private final SimpleDateFormat monthYearFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        db = new DatabaseHelper(getContext());
+        db = DatabaseHelper.getInstance(getContext());
         return inflater.inflate(R.layout.fragment_expense, container, false);
     }
 
@@ -53,14 +56,12 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Find views
         addExpenseFab = view.findViewById(R.id.addExpenseFab);
         expenseRecyclerView = view.findViewById(R.id.expenseRecyclerView);
         startDateEditText = view.findViewById(R.id.startDateEditText);
         endDateEditText = view.findViewById(R.id.endDateEditText);
         searchCategoryAutoCompleteTextView = view.findViewById(R.id.searchCategoryAutoCompleteTextView);
 
-        // Setup RecyclerView
         expenseRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         expenseAdapter = new ExpenseAdapter(expenseList, this);
         expenseRecyclerView.setAdapter(expenseAdapter);
@@ -93,7 +94,8 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
     private void showDatePickerDialog(final TextInputEditText dateEditText) {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(getContext(), (view, year, month, dayOfMonth) -> {
-            String selectedDate = String.format(Locale.getDefault(), "%02d-%02d-%d", dayOfMonth, month + 1, year);
+            calendar.set(year, month, dayOfMonth);
+            String selectedDate = dbDateFormat.format(calendar.getTime());
             dateEditText.setText(selectedDate);
         }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
     }
@@ -102,6 +104,7 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         String startDate = startDateEditText.getText().toString();
         String endDate = endDateEditText.getText().toString();
         String category = searchCategoryAutoCompleteTextView.getText().toString();
+
         expenseList = db.searchExpenses(startDate, endDate, category);
         expenseAdapter.updateData(expenseList);
     }
@@ -150,23 +153,41 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
                 return;
             }
             if ("Other".equals(category) && TextUtils.isEmpty(note)) {
-                Toast.makeText(getContext(), "Note is required for 'Other' category", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Note is required for \'Other\' category", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             double amount = Double.parseDouble(amountStr);
             String description = "Other".equals(category) ? note : "";
-            String date = (expenseToUpdate != null) ? expenseToUpdate.getDate() : new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
+            String dateStr = (expenseToUpdate != null) ? expenseToUpdate.getDate() : dbDateFormat.format(new Date());
 
             if (expenseToUpdate == null) {
-                db.addExpense(amount, description, category, date);
+                db.addExpense(amount, description, category, dateStr);
             } else {
-                db.updateExpense(expenseToUpdate.getId(), amount, description, category, date);
+                db.updateExpense(expenseToUpdate.getId(), amount, description, category, dateStr);
             }
             dialog.dismiss();
             loadExpenses();
+
+            // Check budget after saving
+            String monthYear = monthYearFormat.format(new Date());
+            checkBudgetAndShowWarning(category, monthYear);
         });
         dialog.show();
+    }
+
+    private void checkBudgetAndShowWarning(String category, String monthYear) {
+        double categoryBudget = db.getBudgetForCategory(category, monthYear);
+        if (categoryBudget > 0) { // Only check if a budget is set
+            double categorySpending = db.getCategorySpendingForMonth(category, monthYear);
+            if (categorySpending > categoryBudget) {
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Budget Exceeded")
+                        .setMessage("You have exceeded the budget for the '" + category + "' category this month.")
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show();
+            }
+        }
     }
 
     private void loadExpenses() {
@@ -175,7 +196,7 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
 
     @Override
     public void onItemClick(Expense expense) {
-        new AlertDialog.Builder(getContext())
+         new AlertDialog.Builder(getContext())
                 .setTitle("Choose Action")
                 .setItems(new String[]{"Update", "Delete"}, (dialog, which) -> {
                     if (which == 0) {

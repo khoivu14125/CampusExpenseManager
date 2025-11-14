@@ -20,7 +20,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reset_password);
 
-        db = new DatabaseHelper(this);
+        db = DatabaseHelper.getInstance(this);
         editTextNewPassword = findViewById(R.id.editTextNewPassword);
         editTextConfirmPassword = findViewById(R.id.editTextConfirmPassword);
         buttonResetPassword = findViewById(R.id.buttonResetPassword);

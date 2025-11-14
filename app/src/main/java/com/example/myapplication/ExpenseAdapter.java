@@ -9,6 +9,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.NumberFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -16,6 +19,9 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
 
     private List<Expense> expenseList;
     private OnItemClickListener listener;
+    private final SimpleDateFormat dbDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private final SimpleDateFormat displayDateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+    private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
     public interface OnItemClickListener {
         void onItemClick(Expense expense);
@@ -38,10 +44,25 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
     public void onBindViewHolder(@NonNull ExpenseViewHolder holder, int position) {
         Expense expense = expenseList.get(position);
         holder.categoryTextView.setText(expense.getCategory());
-        holder.dateTextView.setText(expense.getDate());
 
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        // Format date for display
+        try {
+            Date date = dbDateFormat.parse(expense.getDate());
+            holder.dateTextView.setText(displayDateFormat.format(date));
+        } catch (ParseException e) {
+            holder.dateTextView.setText(expense.getDate()); // Fallback to raw date
+        }
+
+        // Format currency
         holder.amountTextView.setText(currencyFormat.format(expense.getAmount()));
+
+        // Handle description for 'Other' category
+        if ("Other".equals(expense.getCategory()) && expense.getDescription() != null && !expense.getDescription().isEmpty()) {
+            holder.descriptionTextView.setText("Note: " + expense.getDescription());
+            holder.descriptionTextView.setVisibility(View.VISIBLE);
+        } else {
+            holder.descriptionTextView.setVisibility(View.GONE);
+        }
 
         holder.itemView.setOnClickListener(v -> listener.onItemClick(expense));
     }
@@ -57,13 +78,14 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
     }
 
     public static class ExpenseViewHolder extends RecyclerView.ViewHolder {
-        public TextView categoryTextView, dateTextView, amountTextView;
+        public TextView categoryTextView, dateTextView, amountTextView, descriptionTextView;
 
         public ExpenseViewHolder(View view) {
             super(view);
             categoryTextView = view.findViewById(R.id.categoryTextView);
             dateTextView = view.findViewById(R.id.dateTextView);
             amountTextView = view.findViewById(R.id.amountTextView);
+            descriptionTextView = view.findViewById(R.id.descriptionTextView);
         }
     }
 }

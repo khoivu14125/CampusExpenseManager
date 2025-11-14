@@ -20,7 +20,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forgot_password);
 
-        db = new DatabaseHelper(this);
+        db = DatabaseHelper.getInstance(this);
         editTextEmail = findViewById(R.id.editTextEmail);
         buttonVerify = findViewById(R.id.buttonVerify);
 

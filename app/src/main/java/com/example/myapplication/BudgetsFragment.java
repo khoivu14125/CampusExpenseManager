@@ -42,7 +42,7 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        db = new DatabaseHelper(getContext());
+        db = DatabaseHelper.getInstance(getContext());
         return inflater.inflate(R.layout.fragment_budgets, container, false);
     }
 
