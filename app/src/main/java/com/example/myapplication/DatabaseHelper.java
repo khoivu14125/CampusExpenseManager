@@ -18,7 +18,7 @@ import java.util.Locale;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "CampusExpenseManager.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 8;
 
     private static DatabaseHelper instance;
 
@@ -26,6 +26,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TABLE_USERS = "users";
     private static final String TABLE_EXPENSES = "expenses";
     private static final String TABLE_CATEGORY_BUDGETS = "category_budgets";
+    private static final String TABLE_RECURRING_EXPENSES = "recurring_expenses";
 
     // Common columns
     private static final String COLUMN_ID = "id";
@@ -44,6 +45,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_MONTH_YEAR = "month_year"; // Format: "yyyy-MM"
     private static final String COLUMN_CATEGORY_NAME = "category_name";
     private static final String COLUMN_BUDGETED_AMOUNT = "budgeted_amount";
+
+    // Recurring Expenses columns
+    private static final String COLUMN_START_DATE = "start_date";
+    private static final String COLUMN_END_DATE = "end_date";
+    private static final String COLUMN_LAST_GENERATED_DATE = "last_generated_date";
+
 
     public static synchronized DatabaseHelper getInstance(Context context) {
         if (instance == null) {
@@ -79,14 +86,31 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_BUDGETED_AMOUNT + " REAL NOT NULL,"
                 + "UNIQUE(" + COLUMN_MONTH_YEAR + ", " + COLUMN_CATEGORY_NAME + ") ON CONFLICT REPLACE" + ")";
         db.execSQL(CREATE_CATEGORY_BUDGETS_TABLE);
+
+        String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE " + TABLE_RECURRING_EXPENSES + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_AMOUNT + " REAL NOT NULL,"
+                + COLUMN_DESCRIPTION + " TEXT,"
+                + COLUMN_CATEGORY + " TEXT,"
+                + COLUMN_START_DATE + " TEXT NOT NULL,"
+                + COLUMN_END_DATE + " TEXT NOT NULL,"
+                + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
+        db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_EXPENSES);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_CATEGORY_BUDGETS);
-        onCreate(db);
+        if (oldVersion < 8) {
+             String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_RECURRING_EXPENSES + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_AMOUNT + " REAL NOT NULL,"
+                + COLUMN_DESCRIPTION + " TEXT,"
+                + COLUMN_CATEGORY + " TEXT,"
+                + COLUMN_START_DATE + " TEXT NOT NULL,"
+                + COLUMN_END_DATE + " TEXT NOT NULL,"
+                + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
+             db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
+        }
     }
 
     // --- User methods ---
@@ -154,8 +178,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             selection.append(COLUMN_DATE + " <= ?");
             selectionArgs.add(endDate);
         }
-        if (!TextUtils.isEmpty(category) && !"All".equalsIgnoreCase(category)) {
-            if (selection.length() > 0) selection.append(" AND ");
+        if (!TextUtils.isEmpty(category) && !"Tất cả".equalsIgnoreCase(category)) {
+             if (selection.length() > 0) selection.append(" AND ");
             selection.append(COLUMN_CATEGORY + " = ?");
             selectionArgs.add(category);
         }
@@ -306,6 +330,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    public void deleteBudgetsForMonth(String monthYear) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_CATEGORY_BUDGETS, COLUMN_MONTH_YEAR + " = ?", new String[]{monthYear});
+    }
+
     public List<CategoryBudget> getCategoryBudgetsForMonth(String monthYear) {
         List<CategoryBudget> budgetList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -325,6 +354,91 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) cursor.close();
         }
         return budgetList;
+    }
+
+    // --- Recurring Expenses methods ---
+    public long addRecurringExpense(RecurringExpense recurringExpense) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_AMOUNT, recurringExpense.getAmount());
+        values.put(COLUMN_DESCRIPTION, recurringExpense.getDescription());
+        values.put(COLUMN_CATEGORY, recurringExpense.getCategory());
+        values.put(COLUMN_START_DATE, recurringExpense.getStartDate());
+        values.put(COLUMN_END_DATE, recurringExpense.getEndDate());
+        values.put(COLUMN_LAST_GENERATED_DATE, recurringExpense.getLastGeneratedDate());
+        return db.insert(TABLE_RECURRING_EXPENSES, null, values);
+    }
+
+    public List<RecurringExpense> getAllRecurringExpenses() {
+        List<RecurringExpense> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(TABLE_RECURRING_EXPENSES, null, null, null, null, null, null);
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    RecurringExpense expense = new RecurringExpense();
+                    expense.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)));
+                    expense.setAmount(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_AMOUNT)));
+                    expense.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION)));
+                    expense.setCategory(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CATEGORY)));
+                    expense.setStartDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_START_DATE)));
+                    expense.setEndDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_END_DATE)));
+                    expense.setLastGeneratedDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_LAST_GENERATED_DATE)));
+                    list.add(expense);
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return list;
+    }
+
+    public void updateRecurringExpenseLastGeneratedDate(int id, String lastGeneratedDate) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_LAST_GENERATED_DATE, lastGeneratedDate);
+        db.update(TABLE_RECURRING_EXPENSES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public void processRecurringExpenses() {
+        List<RecurringExpense> recurringExpenses = getAllRecurringExpenses();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Calendar calendar = Calendar.getInstance();
+        String today = dateFormat.format(calendar.getTime());
+
+        for (RecurringExpense recurring : recurringExpenses) {
+            try {
+                // Check if the current date is within the start and end dates
+                if (today.compareTo(recurring.getStartDate()) >= 0 && today.compareTo(recurring.getEndDate()) <= 0) {
+                    
+                    // Check if the expense has already been generated for this month
+                    String lastGenerated = recurring.getLastGeneratedDate();
+                    boolean shouldGenerate = false;
+                    
+                    if (lastGenerated == null || lastGenerated.isEmpty()) {
+                        shouldGenerate = true;
+                    } else {
+                        // Extract month and year to compare
+                        String currentMonthYear = today.substring(0, 7); // yyyy-MM
+                        String lastGeneratedMonthYear = lastGenerated.substring(0, 7); // yyyy-MM
+                        
+                        if (!currentMonthYear.equals(lastGeneratedMonthYear)) {
+                             shouldGenerate = true;
+                        }
+                    }
+
+                    if (shouldGenerate) {
+                        // Add to expenses table
+                        addExpense(recurring.getAmount(), recurring.getDescription() + " (Recurring)", recurring.getCategory(), today);
+                        
+                        // Update last generated date
+                        updateRecurringExpenseLastGeneratedDate(recurring.getId(), today);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // --- Data Holder Classes ---

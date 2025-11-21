@@ -25,7 +25,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
-                android:hint="Start Date">
+                android:hint="Từ ngày">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/startDateEditText"
@@ -40,7 +40,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
-                android:hint="End Date">
+                android:hint="Đến ngày">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/endDateEditText"
@@ -56,7 +56,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:hint="Category">
+            android:hint="Danh mục">
 
             <AutoCompleteTextView
                 android:id="@+id/searchCategoryAutoCompleteTextView"
@@ -83,6 +83,7 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
         android:layout_margin="16dp"
-        android:contentDescription="Add new expense" />
+        app:srcCompat="@android:drawable/ic_input_add"
+        android:contentDescription="Thêm chi phí mới" />
 
 </RelativeLayout>

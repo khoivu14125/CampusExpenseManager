@@ -76,10 +76,10 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         startDateEditText.setOnClickListener(v -> showDatePickerDialog(startDateEditText));
         endDateEditText.setOnClickListener(v -> showDatePickerDialog(endDateEditText));
 
-        String[] searchCategories = {"All", "Rent", "Food", "Transport", "Education", "Entertainment", "Health", "Clothing", "Other"};
+        String[] searchCategories = {"Tất cả", "Thuê nhà", "Ăn uống", "Đi lại", "Giáo dục", "Giải trí", "Sức khỏe", "Quần áo", "Khác"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, searchCategories);
         searchCategoryAutoCompleteTextView.setAdapter(categoryAdapter);
-        searchCategoryAutoCompleteTextView.setText("All", false);
+        searchCategoryAutoCompleteTextView.setText("Tất cả", false);
 
         TextWatcher searchWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -120,21 +120,23 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         final TextInputEditText noteEditText = dialogView.findViewById(R.id.noteEditText);
         final Button saveButton = dialogView.findViewById(R.id.saveButton);
 
-        String[] categories = {"Rent", "Food", "Transport", "Education", "Entertainment", "Health", "Clothing", "Other"};
+        String[] categories = {"Thuê nhà", "Ăn uống", "Đi lại", "Giáo dục", "Giải trí", "Sức khỏe", "Quần áo", "Khác"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, categories);
         categoryAutoCompleteTextView.setAdapter(adapter);
 
         if (expenseToUpdate != null) {
             amountEditText.setText(String.valueOf(expenseToUpdate.getAmount()));
             categoryAutoCompleteTextView.setText(expenseToUpdate.getCategory(), false);
-            if ("Other".equals(expenseToUpdate.getCategory())) {
+            // Check for "Khác" or "Other"
+            if ("Khác".equalsIgnoreCase(expenseToUpdate.getCategory()) || "Other".equalsIgnoreCase(expenseToUpdate.getCategory())) {
                 noteTextInputLayout.setVisibility(View.VISIBLE);
                 noteEditText.setText(expenseToUpdate.getDescription());
             }
         }
 
         categoryAutoCompleteTextView.setOnItemClickListener((parent, v, position, id) -> {
-            if ("Other".equals(parent.getItemAtPosition(position).toString())) {
+            String selected = parent.getItemAtPosition(position).toString();
+            if ("Khác".equalsIgnoreCase(selected) || "Other".equalsIgnoreCase(selected)) {
                 noteTextInputLayout.setVisibility(View.VISIBLE);
             } else {
                 noteTextInputLayout.setVisibility(View.GONE);
@@ -149,16 +151,19 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
             String note = noteEditText.getText().toString();
 
             if (TextUtils.isEmpty(amountStr) || TextUtils.isEmpty(category)) {
-                Toast.makeText(getContext(), "Amount and category are required", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Số tiền và danh mục là bắt buộc", Toast.LENGTH_SHORT).show();
                 return;
             }
-            if ("Other".equals(category) && TextUtils.isEmpty(note)) {
-                Toast.makeText(getContext(), "Note is required for \'Other\' category", Toast.LENGTH_SHORT).show();
+            
+            boolean isOther = "Khác".equalsIgnoreCase(category) || "Other".equalsIgnoreCase(category);
+            
+            if (isOther && TextUtils.isEmpty(note)) {
+                Toast.makeText(getContext(), "Ghi chú là bắt buộc cho danh mục 'Khác'", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             double amount = Double.parseDouble(amountStr);
-            String description = "Other".equals(category) ? note : "";
+            String description = isOther ? note : "";
             String dateStr = (expenseToUpdate != null) ? expenseToUpdate.getDate() : dbDateFormat.format(new Date());
 
             if (expenseToUpdate == null) {
@@ -167,6 +172,12 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
                 db.updateExpense(expenseToUpdate.getId(), amount, description, category, dateStr);
             }
             dialog.dismiss();
+            
+            // Clear filter when adding new to see the new item immediately if filters are not set
+            if (TextUtils.isEmpty(startDateEditText.getText()) && TextUtils.isEmpty(endDateEditText.getText())) {
+                 searchCategoryAutoCompleteTextView.setText("Tất cả", false);
+            }
+            
             loadExpenses();
 
             // Check budget after saving
@@ -182,8 +193,8 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
             double categorySpending = db.getCategorySpendingForMonth(category, monthYear);
             if (categorySpending > categoryBudget) {
                 new AlertDialog.Builder(getContext())
-                        .setTitle("Budget Exceeded")
-                        .setMessage("You have exceeded the budget for the '" + category + "' category this month.")
+                        .setTitle("Vượt Quá Ngân Sách")
+                        .setMessage("Bạn đã vượt quá ngân sách cho danh mục '" + category + "' trong tháng này.")
                         .setPositiveButton(android.R.string.ok, null)
                         .show();
             }
@@ -197,19 +208,19 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
     @Override
     public void onItemClick(Expense expense) {
          new AlertDialog.Builder(getContext())
-                .setTitle("Choose Action")
-                .setItems(new String[]{"Update", "Delete"}, (dialog, which) -> {
+                .setTitle("Chọn Hành Động")
+                .setItems(new String[]{"Cập nhật", "Xóa"}, (dialog, which) -> {
                     if (which == 0) {
                         showAddOrUpdateExpenseDialog(expense);
                     } else {
                         new AlertDialog.Builder(getContext())
-                                .setTitle("Delete Expense")
-                                .setMessage("Are you sure you want to delete this expense?")
-                                .setPositiveButton(android.R.string.yes, (d, w) -> {
+                                .setTitle("Xóa Chi Phí")
+                                .setMessage("Bạn có chắc chắn muốn xóa khoản chi này không?")
+                                .setPositiveButton("Có", (d, w) -> {
                                     db.deleteExpense(expense.getId());
                                     loadExpenses();
                                 })
-                                .setNegativeButton(android.R.string.no, null)
+                                .setNegativeButton("Không", null)
                                 .show();
                     }
                 })

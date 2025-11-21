@@ -56,9 +56,12 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
         // Format currency
         holder.amountTextView.setText(currencyFormat.format(expense.getAmount()));
 
-        // Handle description for 'Other' category
-        if ("Other".equals(expense.getCategory()) && expense.getDescription() != null && !expense.getDescription().isEmpty()) {
-            holder.descriptionTextView.setText("Note: " + expense.getDescription());
+        // Handle description for 'Other' or 'Khác' category
+        // Checking for both "Other" and "Khác" to support both languages if needed
+        String category = expense.getCategory();
+        if (("Khác".equalsIgnoreCase(category) || "Other".equalsIgnoreCase(category)) 
+                && expense.getDescription() != null && !expense.getDescription().isEmpty()) {
+            holder.descriptionTextView.setText("Ghi chú: " + expense.getDescription());
             holder.descriptionTextView.setVisibility(View.VISIBLE);
         } else {
             holder.descriptionTextView.setVisibility(View.GONE);

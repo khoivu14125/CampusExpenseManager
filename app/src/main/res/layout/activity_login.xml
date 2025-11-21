@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="32dp"
-        android:text="Login"
+        android:text="Đăng Nhập"
         android:textAppearance="@style/TextAppearance.Material3.DisplaySmall" />
 
     <com.google.android.material.textfield.TextInputLayout
@@ -42,7 +42,7 @@
             android:id="@+id/editTextPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Password"
+            android:hint="Mật khẩu"
             android:inputType="textPassword" />
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -50,7 +50,7 @@
         android:id="@+id/buttonLogin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Login" />
+        android:text="Đăng Nhập" />
 
     <TextView
         android:id="@+id/textViewForgotPassword"
@@ -59,7 +59,7 @@
         android:layout_marginTop="16dp"
         android:clickable="true"
         android:focusable="true"
-        android:text="Forgot Password?" />
+        android:text="Quên mật khẩu?" />
 
     <TextView
         android:id="@+id/textViewRegister"
@@ -68,6 +68,6 @@
         android:layout_marginTop="16dp"
         android:clickable="true"
         android:focusable="true"
-        android:text="Don't have an account? Register" />
+        android:text="Chưa có tài khoản? Đăng ký" />
 
 </LinearLayout>

@@ -33,16 +33,16 @@ public class RegisterActivity extends AppCompatActivity {
             String password = editTextPassword.getText().toString().trim();
 
             if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(getApplicationContext(), "Please enter all fields", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             long result = db.addUser(email, password);
             if (result != -1) {
-                Toast.makeText(getApplicationContext(), "Registration successful", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Đăng ký thành công", Toast.LENGTH_SHORT).show();
                 finish();
             } else {
-                Toast.makeText(getApplicationContext(), "Registration failed", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Đăng ký thất bại", Toast.LENGTH_SHORT).show();
             }
         });
 

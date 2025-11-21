@@ -34,7 +34,7 @@ import java.util.Collections;
 
 public class HomeFragment extends Fragment {
 
-    private TextView totalSpendingTextView, remainingBudgetTextView;
+    private TextView totalSpendingTextView, remainingBudgetTextView, totalBudgetDisplayTextView;
     private PieChart categoryPieChart;
     private LineChart spendingTrendChart;
     private DatabaseHelper db;
@@ -51,6 +51,7 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        totalBudgetDisplayTextView = view.findViewById(R.id.totalBudgetDisplayTextView);
         totalSpendingTextView = view.findViewById(R.id.totalSpendingTextView);
         remainingBudgetTextView = view.findViewById(R.id.remainingBudgetTextView);
         categoryPieChart = view.findViewById(R.id.categoryPieChart);
@@ -71,7 +72,8 @@ public class HomeFragment extends Fragment {
         double totalBudget = db.getTotalBudgetForMonth(currentMonthYear);
         double remainingBudget = totalBudget - totalSpending;
 
-        totalSpendingTextView.setText("Tổng chi tiêu: " + currencyFormat.format(totalSpending));
+        totalBudgetDisplayTextView.setText("Tổng ngân sách: " + currencyFormat.format(totalBudget));
+        totalSpendingTextView.setText("Đã chi tiêu: " + currencyFormat.format(totalSpending));
         remainingBudgetTextView.setText("Ngân sách còn lại: " + currencyFormat.format(remainingBudget));
 
         // Load and display category analysis

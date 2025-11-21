@@ -19,11 +19,16 @@ public class MainActivity extends AppCompatActivity {
     private MaterialToolbar topAppBar;
     private BottomNavigationView bottomNavigationView;
     private String userName;
+    private DatabaseHelper db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        db = DatabaseHelper.getInstance(this);
+        // Process recurring expenses on app start
+        db.processRecurringExpenses();
 
         topAppBar = findViewById(R.id.topAppBar);
         setSupportActionBar(topAppBar);
@@ -33,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         // Get user name from SharedPreferences safely
         SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
         String userEmail = prefs.getString("USER_EMAIL", "");
-        this.userName = "User"; // Default name
+        this.userName = "Người dùng"; // Default name
         if (userEmail != null && !userEmail.isEmpty()) {
             String[] parts = userEmail.split("@");
             if (parts.length > 0 && !parts[0].isEmpty()) {
@@ -74,11 +79,11 @@ public class MainActivity extends AppCompatActivity {
         if (itemId == R.id.nav_dashboard) {
             setGreeting(this.userName);
         } else if (itemId == R.id.nav_expense) {
-            getSupportActionBar().setTitle("Expense");
+            getSupportActionBar().setTitle("Chi Tiêu");
         } else if (itemId == R.id.nav_budgets) {
-            getSupportActionBar().setTitle("Budgets");
+            getSupportActionBar().setTitle("Ngân Sách");
         } else if (itemId == R.id.nav_profile) {
-            getSupportActionBar().setTitle("Profile");
+            getSupportActionBar().setTitle("Hồ Sơ");
         }
     }
 
@@ -88,11 +93,11 @@ public class MainActivity extends AppCompatActivity {
 
         String greeting;
         if (hour >= 6 && hour < 12) {
-            greeting = "Good Morning, " + userName;
+            greeting = "Chào buổi sáng, " + userName;
         } else if (hour >= 12 && hour < 18) {
-            greeting = "Good Afternoon, " + userName;
+            greeting = "Chào buổi chiều, " + userName;
         } else {
-            greeting = "Good Evening, " + userName;
+            greeting = "Chào buổi tối, " + userName;
         }
 
         if (getSupportActionBar() != null) {
