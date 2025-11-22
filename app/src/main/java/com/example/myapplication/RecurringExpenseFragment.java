@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -39,32 +41,17 @@ public class RecurringExpenseFragment extends Fragment {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private View rootView;
 
-    private TextInputEditText amountEditText;
-    private AutoCompleteTextView categoryAutoCompleteTextView;
-    private TextInputEditText descriptionEditText;
-    private TextInputEditText startDateEditText;
-    private TextInputEditText endDateEditText;
-    private Button saveButton;
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         db = DatabaseHelper.getInstance(getContext());
-        return inflater.inflate(R.layout.fragment_recurring_expense, container, false);
+        rootView = inflater.inflate(R.layout.fragment_recurring_expense, container, false);
+        return rootView;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        rootView = view;
-
-        // Initialize views for the form
-        amountEditText = view.findViewById(R.id.amountEditText);
-        categoryAutoCompleteTextView = view.findViewById(R.id.categoryAutoCompleteTextView);
-        descriptionEditText = view.findViewById(R.id.descriptionEditText);
-        startDateEditText = view.findViewById(R.id.startDateEditText);
-        endDateEditText = view.findViewById(R.id.endDateEditText);
-        saveButton = view.findViewById(R.id.saveButton);
 
         // Setup RecyclerView
         recurringExpenseRecyclerView = view.findViewById(R.id.recurringExpenseRecyclerView);
@@ -72,16 +59,43 @@ public class RecurringExpenseFragment extends Fragment {
         adapter = new RecurringExpenseAdapter(recurringExpenseList);
         recurringExpenseRecyclerView.setAdapter(adapter);
 
-        // Setup form elements
+        FloatingActionButton fab = view.findViewById(R.id.fab_add_recurring_expense);
+        fab.setOnClickListener(v -> showAddRecurringExpenseDialog());
+
+        loadRecurringExpenses();
+    }
+
+    private void showAddRecurringExpenseDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        LayoutInflater inflater = requireActivity().getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_add_recurring_expense, null);
+        builder.setView(dialogView);
+
+        final TextInputEditText amountEditText = dialogView.findViewById(R.id.amountEditText);
+        final AutoCompleteTextView categoryAutoCompleteTextView = dialogView.findViewById(R.id.categoryAutoCompleteTextView);
+        final TextInputEditText descriptionEditText = dialogView.findViewById(R.id.descriptionEditText);
+        final TextInputEditText startDateEditText = dialogView.findViewById(R.id.startDateEditText);
+        final TextInputEditText endDateEditText = dialogView.findViewById(R.id.endDateEditText);
+        final Button saveButton = dialogView.findViewById(R.id.saveButton);
+        final Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+
         String[] categories = {"Thuê nhà", "Ăn uống", "Đi lại", "Giáo dục", "Giải trí", "Sức khỏe", "Quần áo", "Tiện ích", "Wifi", "Khác"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, categories);
         categoryAutoCompleteTextView.setAdapter(categoryAdapter);
 
         startDateEditText.setOnClickListener(v -> showDatePickerDialog(startDateEditText));
         endDateEditText.setOnClickListener(v -> showDatePickerDialog(endDateEditText));
-        saveButton.setOnClickListener(v -> addRecurringExpense());
 
-        loadRecurringExpenses();
+        AlertDialog dialog = builder.create();
+
+        saveButton.setOnClickListener(v -> {
+            addRecurringExpense(amountEditText, categoryAutoCompleteTextView, descriptionEditText, startDateEditText, endDateEditText);
+            dialog.dismiss();
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     @Override
@@ -96,7 +110,7 @@ public class RecurringExpenseFragment extends Fragment {
         adapter.notifyDataSetChanged();
     }
 
-    private void addRecurringExpense() {
+    private void addRecurringExpense(EditText amountEditText, AutoCompleteTextView categoryAutoCompleteTextView, EditText descriptionEditText, EditText startDateEditText, EditText endDateEditText) {
         String amountStr = amountEditText.getText().toString();
         String category = categoryAutoCompleteTextView.getText().toString();
         String description = descriptionEditText.getText().toString();
@@ -119,16 +133,7 @@ public class RecurringExpenseFragment extends Fragment {
         db.addRecurringExpense(expense);
         updateBudgetsForRecurringExpense(category, amount, startDate, endDate);
 
-        // Check and process immediately if needed
         db.processRecurringExpenses();
-
-        // Clear input fields
-        amountEditText.setText("");
-        categoryAutoCompleteTextView.setText("", false);
-        descriptionEditText.setText("");
-        startDateEditText.setText("");
-        endDateEditText.setText("");
-        amountEditText.requestFocus();
 
         loadRecurringExpenses();
         Snackbar.make(rootView, "Đã thêm chi phí định kỳ và cập nhật ngân sách", Snackbar.LENGTH_SHORT).show();

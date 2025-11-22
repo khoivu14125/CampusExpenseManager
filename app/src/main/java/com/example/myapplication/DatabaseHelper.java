@@ -20,7 +20,7 @@ import java.util.Locale;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "CampusExpenseManager.db";
-    private static final int DATABASE_VERSION = 10;
+    private static final int DATABASE_VERSION = 11;
 
     private static DatabaseHelper instance;
 
@@ -100,7 +100,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_AMOUNT + " REAL NOT NULL,"
                 + COLUMN_DESCRIPTION + " TEXT,"
-                + COLUMN_CATEGORY + " TEXT,"
+                + COLUMN_CATEGORY + " TEXT UNIQUE,"
                 + COLUMN_START_DATE + " TEXT NOT NULL,"
                 + COLUMN_END_DATE + " TEXT NOT NULL,"
                 + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
@@ -140,6 +140,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
                     + COLUMN_INCOME_AMOUNT + " REAL NOT NULL" + ")";
             db.execSQL(CREATE_MONTHLY_INCOME_TABLE);
+        }
+        if (oldVersion < 11) {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_RECURRING_EXPENSES);
+            String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE " + TABLE_RECURRING_EXPENSES + "("
+                    + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + COLUMN_AMOUNT + " REAL NOT NULL,"
+                    + COLUMN_DESCRIPTION + " TEXT,"
+                    + COLUMN_CATEGORY + " TEXT UNIQUE,"
+                    + COLUMN_START_DATE + " TEXT NOT NULL,"
+                    + COLUMN_END_DATE + " TEXT NOT NULL,"
+                    + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
+            db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
         }
     }
 
@@ -442,7 +454,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_START_DATE, recurringExpense.getStartDate());
         values.put(COLUMN_END_DATE, recurringExpense.getEndDate());
         values.put(COLUMN_LAST_GENERATED_DATE, recurringExpense.getLastGeneratedDate());
-        return db.insert(TABLE_RECURRING_EXPENSES, null, values);
+        return db.replace(TABLE_RECURRING_EXPENSES, null, values);
     }
 
     public List<RecurringExpense> getAllRecurringExpenses() {
