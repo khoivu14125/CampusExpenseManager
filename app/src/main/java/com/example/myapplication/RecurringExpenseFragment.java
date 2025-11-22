@@ -123,6 +123,15 @@ public class RecurringExpenseFragment extends Fragment {
         }
 
         double amount = Double.parseDouble(amountStr);
+        
+        // Kiểm tra xem danh mục này đã có chi phí định kỳ chưa
+        RecurringExpense existingExpense = db.getRecurringExpenseByCategory(category);
+        
+        if (existingExpense != null) {
+            // Nếu đã có, xóa ngân sách cũ đã phân bổ cho chi phí này
+            removeBudgetsForRecurringExpense(existingExpense.getCategory(), existingExpense.getAmount(), existingExpense.getStartDate(), existingExpense.getEndDate());
+        }
+
         RecurringExpense expense = new RecurringExpense();
         expense.setAmount(amount);
         expense.setDescription(description);
@@ -130,13 +139,38 @@ public class RecurringExpenseFragment extends Fragment {
         expense.setStartDate(startDate);
         expense.setEndDate(endDate);
 
+        // Lưu (hoặc ghi đè) chi phí định kỳ mới
         db.addRecurringExpense(expense);
+        
+        // Cập nhật ngân sách mới
         updateBudgetsForRecurringExpense(category, amount, startDate, endDate);
 
         db.processRecurringExpenses();
 
         loadRecurringExpenses();
         Snackbar.make(rootView, "Đã thêm chi phí định kỳ và cập nhật ngân sách", Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void removeBudgetsForRecurringExpense(String category, double amount, String startDate, String endDate) {
+        SimpleDateFormat monthFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
+        try {
+            Calendar startCal = Calendar.getInstance();
+            startCal.setTime(dateFormat.parse(startDate));
+
+            Calendar endCal = Calendar.getInstance();
+            endCal.setTime(dateFormat.parse(endDate));
+
+            startCal.set(Calendar.DAY_OF_MONTH, 1);
+
+            while (startCal.compareTo(endCal) <= 0) {
+                String currentMonthYear = monthFormat.format(startCal.getTime());
+                // Trừ số tiền cũ khỏi ngân sách
+                updateBudgetForMonth(currentMonthYear, category, -amount);
+                startCal.add(Calendar.MONTH, 1);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateBudgetsForRecurringExpense(String category, double amount, String startDate, String endDate) {
@@ -169,9 +203,12 @@ public class RecurringExpenseFragment extends Fragment {
         List<CategoryBudget> budgetsToSave = new ArrayList<>();
 
         if (targetBudget != null) {
-            targetBudget.setBudgetedAmount(targetBudget.getBudgetedAmount() + amountToAdd);
+            double newAmount = targetBudget.getBudgetedAmount() + amountToAdd;
+            if (newAmount < 0) newAmount = 0; // Đảm bảo ngân sách không âm
+            targetBudget.setBudgetedAmount(newAmount);
             budgetsToSave.add(targetBudget);
-        } else {
+        } else if (amountToAdd > 0) {
+            // Chỉ tạo mới nếu số tiền thêm vào dương
             targetBudget = new CategoryBudget(monthYear, category, amountToAdd);
             budgetsToSave.add(targetBudget);
         }

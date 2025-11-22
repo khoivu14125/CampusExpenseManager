@@ -481,6 +481,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return list;
     }
 
+    public RecurringExpense getRecurringExpenseByCategory(String category) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(TABLE_RECURRING_EXPENSES, null, COLUMN_CATEGORY + " = ?", new String[]{category}, null, null, null);
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                RecurringExpense expense = new RecurringExpense();
+                expense.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)));
+                expense.setAmount(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_AMOUNT)));
+                expense.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION)));
+                expense.setCategory(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CATEGORY)));
+                expense.setStartDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_START_DATE)));
+                expense.setEndDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_END_DATE)));
+                expense.setLastGeneratedDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_LAST_GENERATED_DATE)));
+                return expense;
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
+    }
+
     public void updateRecurringExpenseLastGeneratedDate(int id, String lastGeneratedDate) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
