@@ -3,12 +3,13 @@ package com.example.myapplication;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class LoginActivity extends AppCompatActivity {
@@ -17,6 +18,7 @@ public class LoginActivity extends AppCompatActivity {
     private Button buttonLogin;
     private TextView textViewRegister, textViewForgotPassword;
     private DatabaseHelper db;
+    private View rootView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +26,8 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         db = DatabaseHelper.getInstance(this);
+        rootView = findViewById(android.R.id.content);
+        
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPassword = findViewById(R.id.editTextPassword);
         buttonLogin = findViewById(R.id.buttonLogin);
@@ -35,7 +39,7 @@ public class LoginActivity extends AppCompatActivity {
             String password = editTextPassword.getText().toString().trim();
 
             if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(getApplicationContext(), "Please enter all fields", Toast.LENGTH_SHORT).show();
+                Snackbar.make(rootView, "Vui lòng nhập đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
@@ -47,12 +51,21 @@ public class LoginActivity extends AppCompatActivity {
                 editor.putString("USER_EMAIL", email);
                 editor.apply();
 
-                Toast.makeText(getApplicationContext(), "Login successful", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                startActivity(intent);
-                finish();
+                Snackbar.make(rootView, "Đăng nhập thành công", Snackbar.LENGTH_SHORT)
+                        .addCallback(new Snackbar.Callback() {
+                            @Override
+                            public void onDismissed(Snackbar transientBottomBar, int event) {
+                                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                                startActivity(intent);
+                                finish();
+                            }
+                        }).show();
+                // For faster transition if snackbar delay is not desired, uncomment below and remove callback
+                // Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                // startActivity(intent);
+                // finish();
             } else {
-                Toast.makeText(getApplicationContext(), "Invalid email or password", Toast.LENGTH_SHORT).show();
+                Snackbar.make(rootView, "Email hoặc mật khẩu không chính xác", Snackbar.LENGTH_LONG).show();
             }
         });
 

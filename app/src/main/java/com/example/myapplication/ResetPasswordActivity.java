@@ -1,11 +1,12 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class ResetPasswordActivity extends AppCompatActivity {
@@ -14,6 +15,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
     private Button buttonResetPassword;
     private DatabaseHelper db;
     private String email;
+    private View rootView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +23,8 @@ public class ResetPasswordActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reset_password);
 
         db = DatabaseHelper.getInstance(this);
+        rootView = findViewById(android.R.id.content);
+        
         editTextNewPassword = findViewById(R.id.editTextNewPassword);
         editTextConfirmPassword = findViewById(R.id.editTextConfirmPassword);
         buttonResetPassword = findViewById(R.id.buttonResetPassword);
@@ -32,21 +36,26 @@ public class ResetPasswordActivity extends AppCompatActivity {
             String confirmPassword = editTextConfirmPassword.getText().toString().trim();
 
             if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
-                Toast.makeText(getApplicationContext(), "Please enter all fields", Toast.LENGTH_SHORT).show();
+                Snackbar.make(rootView, "Vui lòng nhập đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
             if (!newPassword.equals(confirmPassword)) {
-                Toast.makeText(getApplicationContext(), "Passwords do not match", Toast.LENGTH_SHORT).show();
+                Snackbar.make(rootView, "Mật khẩu không khớp", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
             boolean isUpdated = db.updatePassword(email, newPassword);
             if (isUpdated) {
-                Toast.makeText(getApplicationContext(), "Password reset successful", Toast.LENGTH_SHORT).show();
-                finish();
+                Snackbar.make(rootView, "Đặt lại mật khẩu thành công", Snackbar.LENGTH_SHORT)
+                        .addCallback(new Snackbar.Callback() {
+                            @Override
+                            public void onDismissed(Snackbar transientBottomBar, int event) {
+                                finish();
+                            }
+                        }).show();
             } else {
-                Toast.makeText(getApplicationContext(), "Password reset failed", Toast.LENGTH_SHORT).show();
+                Snackbar.make(rootView, "Đặt lại mật khẩu thất bại", Snackbar.LENGTH_LONG).show();
             }
         });
     }

@@ -13,17 +13,26 @@
         android:theme="@style/Theme.MyApplication">
         <activity
             android:name=".LoginActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".ForgotPasswordActivity" />
-        <activity android:name=".ResetPasswordActivity" />
-        <activity android:name=".MainActivity" />
+        <activity 
+            android:name=".RegisterActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity 
+            android:name=".ForgotPasswordActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity 
+            android:name=".ResetPasswordActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity 
+            android:name=".MainActivity"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

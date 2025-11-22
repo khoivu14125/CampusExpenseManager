@@ -1,11 +1,17 @@
 package com.example.myapplication;
 
+import android.app.AlertDialog;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,20 +36,28 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.Collections;
 
 public class HomeFragment extends Fragment {
 
     private TextView totalSpendingTextView, remainingBudgetTextView, totalBudgetDisplayTextView;
+    private TextView incomeDisplayTextView;
+    private Button editIncomeButton;
     private PieChart categoryPieChart;
-    private LineChart spendingTrendChart;
     private DatabaseHelper db;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    
+    // Month navigation
+    private ImageButton prevMonthButton, nextMonthButton;
+    private TextView currentMonthTextView;
+    private Calendar selectedMonthCalendar;
+    private SimpleDateFormat monthYearFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
+    private SimpleDateFormat displayMonthFormat = new SimpleDateFormat("MM/yyyy", Locale.getDefault());
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         db = DatabaseHelper.getInstance(getContext());
+        selectedMonthCalendar = Calendar.getInstance(); // Default to current month
         return inflater.inflate(R.layout.fragment_home, container, false);
     }
 
@@ -54,8 +68,69 @@ public class HomeFragment extends Fragment {
         totalBudgetDisplayTextView = view.findViewById(R.id.totalBudgetDisplayTextView);
         totalSpendingTextView = view.findViewById(R.id.totalSpendingTextView);
         remainingBudgetTextView = view.findViewById(R.id.remainingBudgetTextView);
+        
+        incomeDisplayTextView = view.findViewById(R.id.incomeDisplayTextView);
+        editIncomeButton = view.findViewById(R.id.editIncomeButton);
+        
         categoryPieChart = view.findViewById(R.id.categoryPieChart);
-        spendingTrendChart = view.findViewById(R.id.spendingTrendChart);
+        
+        // Setup month navigation
+        prevMonthButton = view.findViewById(R.id.prevMonthButton);
+        nextMonthButton = view.findViewById(R.id.nextMonthButton);
+        currentMonthTextView = view.findViewById(R.id.currentMonthTextView);
+        
+        updateMonthDisplay();
+        
+        prevMonthButton.setOnClickListener(v -> {
+            selectedMonthCalendar.add(Calendar.MONTH, -1);
+            updateMonthDisplay();
+            loadDashboardData();
+        });
+        
+        nextMonthButton.setOnClickListener(v -> {
+            selectedMonthCalendar.add(Calendar.MONTH, 1);
+            updateMonthDisplay();
+            loadDashboardData();
+        });
+        
+        editIncomeButton.setOnClickListener(v -> showEditIncomeDialog());
+    }
+    
+    private void updateMonthDisplay() {
+        currentMonthTextView.setText("Tháng " + displayMonthFormat.format(selectedMonthCalendar.getTime()));
+    }
+    
+    private void showEditIncomeDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Nhập thu nhập tháng");
+
+        final EditText input = new EditText(getContext());
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        
+        // Pre-fill with current value if exists
+        String currentMonthYear = monthYearFormat.format(selectedMonthCalendar.getTime());
+        double currentIncome = db.getMonthlyIncome(currentMonthYear);
+        if (currentIncome > 0) {
+             input.setText(String.valueOf((int)currentIncome)); // Display as int for cleaner look if possible
+        }
+        
+        builder.setView(input);
+
+        builder.setPositiveButton("Lưu", (dialog, which) -> {
+            String incomeStr = input.getText().toString();
+            if (!incomeStr.isEmpty()) {
+                try {
+                    double income = Double.parseDouble(incomeStr);
+                    db.setMonthlyIncome(currentMonthYear, income);
+                    loadDashboardData(); // Refresh UI
+                } catch (NumberFormatException e) {
+                    Toast.makeText(getContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Hủy", (dialog, which) -> dialog.cancel());
+
+        builder.show();
     }
 
     @Override
@@ -65,31 +140,34 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadDashboardData() {
-        String currentMonthYear = new SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Calendar.getInstance().getTime());
+        String currentMonthYear = monthYearFormat.format(selectedMonthCalendar.getTime());
+
+        // Load income
+        double income = db.getMonthlyIncome(currentMonthYear);
+        incomeDisplayTextView.setText(currencyFormat.format(income));
 
         // Load and display monthly overview
         double totalSpending = db.getTotalSpendingForMonth(currentMonthYear);
-        double totalBudget = db.getTotalBudgetForMonth(currentMonthYear);
-        double remainingBudget = totalBudget - totalSpending;
+        
+        // Calculate remaining budget (Income - Spending)
+        double remainingBudget = income - totalSpending;
 
-        totalBudgetDisplayTextView.setText("Tổng ngân sách: " + currencyFormat.format(totalBudget));
+        // Update labels
+        totalBudgetDisplayTextView.setText("Tổng thu nhập: " + currencyFormat.format(income));
         totalSpendingTextView.setText("Đã chi tiêu: " + currencyFormat.format(totalSpending));
-        remainingBudgetTextView.setText("Ngân sách còn lại: " + currencyFormat.format(remainingBudget));
+        remainingBudgetTextView.setText("Số dư: " + currencyFormat.format(remainingBudget));
 
         // Load and display category analysis
-        setupCategoryPieChart();
-
-        // Load and display spending trend
-        setupSpendingTrendChart();
+        setupCategoryPieChart(currentMonthYear);
     }
 
-    private void setupCategoryPieChart() {
+    private void setupCategoryPieChart(String monthYear) {
         categoryPieChart.setVisibility(View.VISIBLE);
-        String currentMonthYear = new SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Calendar.getInstance().getTime());
-        List<DatabaseHelper.CategorySpending> spendingList = db.getSpendingByCategoryForMonth(currentMonthYear);
+        List<DatabaseHelper.CategorySpending> spendingList = db.getSpendingByCategoryForMonth(monthYear);
 
         if (spendingList.isEmpty()) {
             categoryPieChart.clear();
+            categoryPieChart.setNoDataText("Không có dữ liệu chi tiêu cho tháng này");
             categoryPieChart.invalidate();
             return;
         }
@@ -109,45 +187,5 @@ public class HomeFragment extends Fragment {
         categoryPieChart.getDescription().setEnabled(false);
         categoryPieChart.setEntryLabelColor(Color.BLACK);
         categoryPieChart.invalidate(); // Refresh chart
-    }
-
-    private void setupSpendingTrendChart() {
-        spendingTrendChart.setVisibility(View.VISIBLE);
-        List<DatabaseHelper.MonthlySpending> trendList = db.getMonthlySpendingTrend(6); // Last 6 months
-
-        if (trendList.isEmpty() || trendList.size() < 2) {
-            spendingTrendChart.clear();
-            spendingTrendChart.invalidate();
-            return;
-        }
-
-        List<Entry> entries = new ArrayList<>();
-        final List<String> xAxisLabels = new ArrayList<>();
-        for (int i = 0; i < trendList.size(); i++) {
-            entries.add(new Entry(i, (float) trendList.get(i).totalAmount));
-            xAxisLabels.add(trendList.get(i).monthYear);
-        }
-
-        LineDataSet dataSet = new LineDataSet(entries, "Xu hướng chi tiêu");
-        dataSet.setColor(ContextCompat.getColor(getContext(), R.color.chart_line_color));
-        dataSet.setCircleColor(ContextCompat.getColor(getContext(), R.color.chart_circle_color));
-
-        LineData lineData = new LineData(dataSet);
-        spendingTrendChart.setData(lineData);
-
-        XAxis xAxis = spendingTrendChart.getXAxis();
-        xAxis.setValueFormatter(new ValueFormatter() {
-            @Override
-            public String getFormattedValue(float value) {
-                if (value >= 0 && value < xAxisLabels.size()) {
-                    return xAxisLabels.get((int) value);
-                }
-                return "";
-            }
-        });
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-
-        spendingTrendChart.getDescription().setEnabled(false);
-        spendingTrendChart.invalidate(); // Refresh chart
     }
 }

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -124,24 +125,14 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, categories);
         categoryAutoCompleteTextView.setAdapter(adapter);
 
+        // Hiển thị trường ghi chú cho tất cả danh mục
+        noteTextInputLayout.setVisibility(View.VISIBLE);
+
         if (expenseToUpdate != null) {
             amountEditText.setText(String.valueOf(expenseToUpdate.getAmount()));
             categoryAutoCompleteTextView.setText(expenseToUpdate.getCategory(), false);
-            // Check for "Khác" or "Other"
-            if ("Khác".equalsIgnoreCase(expenseToUpdate.getCategory()) || "Other".equalsIgnoreCase(expenseToUpdate.getCategory())) {
-                noteTextInputLayout.setVisibility(View.VISIBLE);
-                noteEditText.setText(expenseToUpdate.getDescription());
-            }
+            noteEditText.setText(expenseToUpdate.getDescription());
         }
-
-        categoryAutoCompleteTextView.setOnItemClickListener((parent, v, position, id) -> {
-            String selected = parent.getItemAtPosition(position).toString();
-            if ("Khác".equalsIgnoreCase(selected) || "Other".equalsIgnoreCase(selected)) {
-                noteTextInputLayout.setVisibility(View.VISIBLE);
-            } else {
-                noteTextInputLayout.setVisibility(View.GONE);
-            }
-        });
 
         AlertDialog dialog = builder.create();
 
@@ -151,19 +142,13 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
             String note = noteEditText.getText().toString();
 
             if (TextUtils.isEmpty(amountStr) || TextUtils.isEmpty(category)) {
-                Toast.makeText(getContext(), "Số tiền và danh mục là bắt buộc", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            
-            boolean isOther = "Khác".equalsIgnoreCase(category) || "Other".equalsIgnoreCase(category);
-            
-            if (isOther && TextUtils.isEmpty(note)) {
-                Toast.makeText(getContext(), "Ghi chú là bắt buộc cho danh mục 'Khác'", Toast.LENGTH_SHORT).show();
+                Log.d("ExpenseFragment", "Số tiền và danh mục là bắt buộc");
                 return;
             }
 
             double amount = Double.parseDouble(amountStr);
-            String description = isOther ? note : "";
+            // Luôn lấy giá trị note vì hiện tại tất cả danh mục đều nhập note
+            String description = note;
             String dateStr = (expenseToUpdate != null) ? expenseToUpdate.getDate() : dbDateFormat.format(new Date());
 
             if (expenseToUpdate == null) {

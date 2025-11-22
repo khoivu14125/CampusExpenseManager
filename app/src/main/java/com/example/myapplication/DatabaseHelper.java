@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -18,7 +19,7 @@ import java.util.Locale;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "CampusExpenseManager.db";
-    private static final int DATABASE_VERSION = 8;
+    private static final int DATABASE_VERSION = 10;
 
     private static DatabaseHelper instance;
 
@@ -27,6 +28,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TABLE_EXPENSES = "expenses";
     private static final String TABLE_CATEGORY_BUDGETS = "category_budgets";
     private static final String TABLE_RECURRING_EXPENSES = "recurring_expenses";
+    private static final String TABLE_MONTHLY_INCOME = "monthly_income";
 
     // Common columns
     private static final String COLUMN_ID = "id";
@@ -34,6 +36,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // Users columns
     private static final String COLUMN_EMAIL = "email";
     private static final String COLUMN_PASSWORD = "password";
+    private static final String COLUMN_FULL_NAME = "full_name";
+    private static final String COLUMN_PIN = "pin";
 
     // Expenses columns
     private static final String COLUMN_AMOUNT = "amount";
@@ -50,7 +54,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_START_DATE = "start_date";
     private static final String COLUMN_END_DATE = "end_date";
     private static final String COLUMN_LAST_GENERATED_DATE = "last_generated_date";
-
+    
+    // Monthly Income columns
+    private static final String COLUMN_INCOME_AMOUNT = "income_amount";
 
     public static synchronized DatabaseHelper getInstance(Context context) {
         if (instance == null) {
@@ -68,7 +74,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_EMAIL + " TEXT UNIQUE,"
-                + COLUMN_PASSWORD + " TEXT" + ")";
+                + COLUMN_PASSWORD + " TEXT,"
+                + COLUMN_FULL_NAME + " TEXT,"
+                + COLUMN_PIN + " TEXT" + ")";
         db.execSQL(CREATE_USERS_TABLE);
 
         String CREATE_EXPENSES_TABLE = "CREATE TABLE " + TABLE_EXPENSES + "("
@@ -96,6 +104,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_END_DATE + " TEXT NOT NULL,"
                 + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
         db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
+        
+        String CREATE_MONTHLY_INCOME_TABLE = "CREATE TABLE " + TABLE_MONTHLY_INCOME + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
+                + COLUMN_INCOME_AMOUNT + " REAL NOT NULL" + ")";
+        db.execSQL(CREATE_MONTHLY_INCOME_TABLE);
     }
 
     @Override
@@ -111,15 +125,38 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
              db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
         }
+        if (oldVersion < 9) {
+            // Add full_name and pin columns to users table
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT");
+                db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_PIN + " TEXT");
+            } catch (Exception e) {
+                // Columns might already exist in some development versions, ignoring error
+            }
+        }
+        if (oldVersion < 10) {
+            String CREATE_MONTHLY_INCOME_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_MONTHLY_INCOME + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
+                + COLUMN_INCOME_AMOUNT + " REAL NOT NULL" + ")";
+            db.execSQL(CREATE_MONTHLY_INCOME_TABLE);
+        }
     }
 
     // --- User methods ---
-    public long addUser(String email, String password) {
+    public long addUser(String email, String password, String fullName, String pin) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_EMAIL, email);
         values.put(COLUMN_PASSWORD, BCrypt.hashpw(password, BCrypt.gensalt()));
+        values.put(COLUMN_FULL_NAME, fullName);
+        values.put(COLUMN_PIN, pin); // Storing PIN as plain text for simplicity as requested, or could be hashed
         return db.insert(TABLE_USERS, null, values);
+    }
+
+    // Keep old method for backward compatibility if needed, but ideally update usages
+    public long addUser(String email, String password) {
+        return addUser(email, password, "", "");
     }
 
     public boolean checkUser(String email, String password) {
@@ -144,6 +181,46 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         } finally {
             if (cursor != null) cursor.close();
         }
+    }
+
+    public User getUser(String email) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(TABLE_USERS, null, COLUMN_EMAIL + " = ?", new String[]{email}, null, null, null);
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                User user = new User();
+                user.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)));
+                user.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_EMAIL)));
+                user.setFullName(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FULL_NAME)));
+                user.setPin(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PIN)));
+                return user;
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return null;
+    }
+
+    public boolean updateUserProfile(String currentEmail, String fullName, String pin) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_FULL_NAME, fullName);
+        values.put(COLUMN_PIN, pin);
+        return db.update(TABLE_USERS, values, COLUMN_EMAIL + " = ?", new String[]{currentEmail}) > 0;
+    }
+    
+    public boolean verifyPin(String email, String pin) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_PIN}, COLUMN_EMAIL + " = ?", new String[]{email}, null, null, null);
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                String storedPin = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PIN));
+                return pin.equals(storedPin);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return false;
     }
 
     public boolean updatePassword(String email, String newPassword) {
@@ -440,8 +517,49 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         }
     }
+    
+    // --- Income Methods ---
+    public void setMonthlyIncome(String monthYear, double incomeAmount) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_MONTH_YEAR, monthYear);
+        values.put(COLUMN_INCOME_AMOUNT, incomeAmount);
+        // Use REPLACE to insert or update
+        db.replace(TABLE_MONTHLY_INCOME, null, values);
+    }
+    
+    public double getMonthlyIncome(String monthYear) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        double income = 0.0;
+        Cursor cursor = db.query(TABLE_MONTHLY_INCOME, new String[]{COLUMN_INCOME_AMOUNT}, COLUMN_MONTH_YEAR + " = ?", new String[]{monthYear}, null, null, null);
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                income = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_INCOME_AMOUNT));
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return income;
+    }
 
     // --- Data Holder Classes ---
+    public static class User {
+        private int id;
+        private String email;
+        private String fullName;
+        private String pin;
+
+        // Getters and Setters
+        public int getId() { return id; }
+        public void setId(int id) { this.id = id; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getFullName() { return fullName; }
+        public void setFullName(String fullName) { this.fullName = fullName; }
+        public String getPin() { return pin; }
+        public void setPin(String pin) { this.pin = pin; }
+    }
+
     public static class CategorySpending {
         public final String category;
         public final double totalAmount;
