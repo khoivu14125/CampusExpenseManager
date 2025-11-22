@@ -2,14 +2,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_dashboard"
-        android:title="Dashboard" />
+        android:title="Tổng Quan"
+        android:icon="@android:drawable/ic_menu_view" />
     <item
         android:id="@+id/nav_expense"
-        android:title="Expense" />
+        android:title="Chi Tiêu"
+        android:icon="@android:drawable/ic_menu_my_calendar" />
+    <item
+        android:id="@+id/nav_recurring"
+        android:title="Định Kỳ"
+        android:icon="@android:drawable/ic_menu_recent_history" />
     <item
         android:id="@+id/nav_budgets"
-        android:title="Budgets" />
+        android:title="Ngân Sách"
+        android:icon="@android:drawable/ic_menu_manage" />
     <item
         android:id="@+id/nav_profile"
-        android:title="Profile" />
+        android:title="Hồ Sơ"
+        android:icon="@android:drawable/ic_menu_myplaces" />
 </menu>

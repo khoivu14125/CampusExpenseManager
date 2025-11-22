@@ -34,7 +34,10 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
         RecurringExpense expense = recurringExpenseList.get(position);
         holder.categoryTextView.setText(expense.getCategory());
         holder.amountTextView.setText(currencyFormat.format(expense.getAmount()));
-        holder.dateRangeTextView.setText(String.format("From: %s To: %s", expense.getStartDate(), expense.getEndDate()));
+        
+        // Set start and end dates individually
+        holder.startDateTextView.setText(expense.getStartDate());
+        holder.endDateTextView.setText(expense.getEndDate());
         
         if (expense.getDescription() != null && !expense.getDescription().isEmpty()) {
             holder.descriptionTextView.setText(expense.getDescription());
@@ -50,13 +53,14 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
     }
 
     public static class RecurringExpenseViewHolder extends RecyclerView.ViewHolder {
-        public TextView categoryTextView, amountTextView, dateRangeTextView, descriptionTextView;
+        public TextView categoryTextView, amountTextView, startDateTextView, endDateTextView, descriptionTextView;
 
         public RecurringExpenseViewHolder(View view) {
             super(view);
             categoryTextView = view.findViewById(R.id.categoryTextView);
             amountTextView = view.findViewById(R.id.amountTextView);
-            dateRangeTextView = view.findViewById(R.id.dateRangeTextView);
+            startDateTextView = view.findViewById(R.id.startDateTextView);
+            endDateTextView = view.findViewById(R.id.endDateTextView);
             descriptionTextView = view.findViewById(R.id.descriptionTextView);
         }
     }

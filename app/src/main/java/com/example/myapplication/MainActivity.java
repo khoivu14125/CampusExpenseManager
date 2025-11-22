@@ -1,6 +1,5 @@
 package com.example.myapplication;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
@@ -67,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
             replaceFragment(new HomeFragment());
         } else if (itemId == R.id.nav_expense) {
             replaceFragment(new ExpenseFragment());
+        } else if (itemId == R.id.nav_recurring) {
+            replaceFragment(new RecurringExpenseFragment());
         } else if (itemId == R.id.nav_budgets) {
             replaceFragment(new BudgetsFragment());
         } else if (itemId == R.id.nav_profile) {
@@ -80,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
             setGreeting(this.userName);
         } else if (itemId == R.id.nav_expense) {
             getSupportActionBar().setTitle("Chi Tiêu");
+        } else if (itemId == R.id.nav_recurring) {
+            getSupportActionBar().setTitle("Định Kỳ");
         } else if (itemId == R.id.nav_budgets) {
             getSupportActionBar().setTitle("Ngân Sách");
         } else if (itemId == R.id.nav_profile) {

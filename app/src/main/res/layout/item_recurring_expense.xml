@@ -38,21 +38,49 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/dateRangeTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="From: yyyy-MM-dd To: yyyy-MM-dd"
-            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
-
-        <TextView
             android:id="@+id/descriptionTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:text="Description"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-            android:visibility="gone" />
+            android:textStyle="italic"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bắt đầu: "
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/startDateTextView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="yyyy-MM-dd"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kết thúc: "
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/endDateTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="yyyy-MM-dd"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"/>
+        </LinearLayout>
 
     </LinearLayout>
 

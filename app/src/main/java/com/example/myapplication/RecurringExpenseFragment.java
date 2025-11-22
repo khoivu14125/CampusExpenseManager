@@ -1,6 +1,5 @@
 package com.example.myapplication;
 
-import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -10,7 +9,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,9 +16,10 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -36,6 +35,7 @@ public class RecurringExpenseFragment extends Fragment {
     private List<RecurringExpense> recurringExpenseList = new ArrayList<>();
     private DatabaseHelper db;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private View rootView;
 
     @Nullable
     @Override
@@ -47,6 +47,7 @@ public class RecurringExpenseFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        rootView = view;
 
         recurringExpenseRecyclerView = view.findViewById(R.id.recurringExpenseRecyclerView);
         addRecurringExpenseFab = view.findViewById(R.id.addRecurringExpenseFab);
@@ -67,7 +68,7 @@ public class RecurringExpenseFragment extends Fragment {
     }
 
     private void showAddRecurringExpenseDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getContext());
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_recurring_expense, null);
         builder.setView(dialogView);
 
@@ -78,14 +79,14 @@ public class RecurringExpenseFragment extends Fragment {
         final TextInputEditText endDateEditText = dialogView.findViewById(R.id.endDateEditText);
         final Button saveButton = dialogView.findViewById(R.id.saveButton);
 
-        String[] categories = {"Rent", "Food", "Transport", "Education", "Entertainment", "Health", "Clothing", "Utilities", "Wifi", "Other"};
+        String[] categories = {"Thuê nhà", "Ăn uống", "Đi lại", "Giáo dục", "Giải trí", "Sức khỏe", "Quần áo", "Tiện ích", "Wifi", "Khác"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, categories);
         categoryAutoCompleteTextView.setAdapter(categoryAdapter);
 
         startDateEditText.setOnClickListener(v -> showDatePickerDialog(startDateEditText));
         endDateEditText.setOnClickListener(v -> showDatePickerDialog(endDateEditText));
 
-        AlertDialog dialog = builder.create();
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
 
         saveButton.setOnClickListener(v -> {
             String amountStr = amountEditText.getText().toString();
@@ -95,7 +96,7 @@ public class RecurringExpenseFragment extends Fragment {
             String endDate = endDateEditText.getText().toString();
 
             if (TextUtils.isEmpty(amountStr) || TextUtils.isEmpty(category) || TextUtils.isEmpty(startDate) || TextUtils.isEmpty(endDate)) {
-                Toast.makeText(getContext(), "Please fill all required fields", Toast.LENGTH_SHORT).show();
+                Snackbar.make(rootView, "Vui lòng điền đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
@@ -108,7 +109,7 @@ public class RecurringExpenseFragment extends Fragment {
             
             dialog.dismiss();
             loadRecurringExpenses();
-            Toast.makeText(getContext(), "Recurring expense added", Toast.LENGTH_SHORT).show();
+            Snackbar.make(rootView, "Đã thêm chi phí định kỳ", Snackbar.LENGTH_SHORT).show();
         });
 
         dialog.show();
