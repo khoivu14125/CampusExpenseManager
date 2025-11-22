@@ -56,13 +56,32 @@ public class RecurringExpenseFragment extends Fragment {
         // Setup RecyclerView
         recurringExpenseRecyclerView = view.findViewById(R.id.recurringExpenseRecyclerView);
         recurringExpenseRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new RecurringExpenseAdapter(recurringExpenseList);
+        adapter = new RecurringExpenseAdapter(recurringExpenseList, this::showDeleteConfirmationDialog);
         recurringExpenseRecyclerView.setAdapter(adapter);
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_recurring_expense);
         fab.setOnClickListener(v -> showAddRecurringExpenseDialog());
 
         loadRecurringExpenses();
+    }
+
+    private void showDeleteConfirmationDialog(RecurringExpense expense) {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Xóa chi phí định kỳ")
+                .setMessage("Bạn có chắc chắn muốn xóa chi phí định kỳ này không? Ngân sách đã phân bổ sẽ bị trừ đi.")
+                .setPositiveButton("Xóa", (dialog, which) -> deleteRecurringExpense(expense))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void deleteRecurringExpense(RecurringExpense expense) {
+        db.deleteRecurringExpense(expense.getId());
+        
+        // Xóa ngân sách đã phân bổ cho chi phí này
+        removeBudgetsForRecurringExpense(expense.getCategory(), expense.getAmount(), expense.getStartDate(), expense.getEndDate());
+        
+        loadRecurringExpenses();
+        Snackbar.make(rootView, "Đã xóa chi phí định kỳ và cập nhật ngân sách", Snackbar.LENGTH_SHORT).show();
     }
 
     private void showAddRecurringExpenseDialog() {

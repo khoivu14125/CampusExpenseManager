@@ -509,6 +509,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.update(TABLE_RECURRING_EXPENSES, values, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
+    public void deleteRecurringExpense(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_RECURRING_EXPENSES, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
     public void processRecurringExpenses() {
         List<RecurringExpense> recurringExpenses = getAllRecurringExpenses();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());

@@ -3,6 +3,7 @@ package com.example.myapplication;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,10 +16,16 @@ import java.util.Locale;
 public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpenseAdapter.RecurringExpenseViewHolder> {
 
     private List<RecurringExpense> recurringExpenseList;
+    private OnDeleteClickListener onDeleteClickListener;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
-    public RecurringExpenseAdapter(List<RecurringExpense> recurringExpenseList) {
+    public interface OnDeleteClickListener {
+        void onDeleteClick(RecurringExpense expense);
+    }
+
+    public RecurringExpenseAdapter(List<RecurringExpense> recurringExpenseList, OnDeleteClickListener onDeleteClickListener) {
         this.recurringExpenseList = recurringExpenseList;
+        this.onDeleteClickListener = onDeleteClickListener;
     }
 
     @NonNull
@@ -45,6 +52,12 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
         } else {
             holder.descriptionTextView.setVisibility(View.GONE);
         }
+
+        holder.deleteButton.setOnClickListener(v -> {
+            if (onDeleteClickListener != null) {
+                onDeleteClickListener.onDeleteClick(expense);
+            }
+        });
     }
 
     @Override
@@ -54,6 +67,7 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
 
     public static class RecurringExpenseViewHolder extends RecyclerView.ViewHolder {
         public TextView categoryTextView, amountTextView, startDateTextView, endDateTextView, descriptionTextView;
+        public ImageButton deleteButton;
 
         public RecurringExpenseViewHolder(View view) {
             super(view);
@@ -62,6 +76,7 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
             startDateTextView = view.findViewById(R.id.startDateTextView);
             endDateTextView = view.findViewById(R.id.endDateTextView);
             descriptionTextView = view.findViewById(R.id.descriptionTextView);
+            deleteButton = view.findViewById(R.id.deleteButton);
         }
     }
 }
