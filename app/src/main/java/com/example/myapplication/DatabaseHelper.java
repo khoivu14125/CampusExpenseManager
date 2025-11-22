@@ -10,10 +10,11 @@ import android.util.Log;
 
 import org.mindrot.jbcrypt.BCrypt;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Calendar;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
@@ -54,7 +55,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_START_DATE = "start_date";
     private static final String COLUMN_END_DATE = "end_date";
     private static final String COLUMN_LAST_GENERATED_DATE = "last_generated_date";
-    
+
     // Monthly Income columns
     private static final String COLUMN_INCOME_AMOUNT = "income_amount";
 
@@ -104,7 +105,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_END_DATE + " TEXT NOT NULL,"
                 + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
         db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
-        
+
         String CREATE_MONTHLY_INCOME_TABLE = "CREATE TABLE " + TABLE_MONTHLY_INCOME + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
@@ -115,30 +116,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 8) {
-             String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_RECURRING_EXPENSES + "("
-                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + COLUMN_AMOUNT + " REAL NOT NULL,"
-                + COLUMN_DESCRIPTION + " TEXT,"
-                + COLUMN_CATEGORY + " TEXT,"
-                + COLUMN_START_DATE + " TEXT NOT NULL,"
-                + COLUMN_END_DATE + " TEXT NOT NULL,"
-                + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
-             db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
+            String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_RECURRING_EXPENSES + "("
+                    + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + COLUMN_AMOUNT + " REAL NOT NULL,"
+                    + COLUMN_DESCRIPTION + " TEXT,"
+                    + COLUMN_CATEGORY + " TEXT,"
+                    + COLUMN_START_DATE + " TEXT NOT NULL,"
+                    + COLUMN_END_DATE + " TEXT NOT NULL,"
+                    + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
+            db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
         }
         if (oldVersion < 9) {
-            // Add full_name and pin columns to users table
             try {
                 db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT");
                 db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_PIN + " TEXT");
             } catch (Exception e) {
-                // Columns might already exist in some development versions, ignoring error
+                // Columns might already exist, ignoring error
             }
         }
         if (oldVersion < 10) {
             String CREATE_MONTHLY_INCOME_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_MONTHLY_INCOME + "("
-                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
-                + COLUMN_INCOME_AMOUNT + " REAL NOT NULL" + ")";
+                    + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
+                    + COLUMN_INCOME_AMOUNT + " REAL NOT NULL" + ")";
             db.execSQL(CREATE_MONTHLY_INCOME_TABLE);
         }
     }
@@ -150,11 +150,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_EMAIL, email);
         values.put(COLUMN_PASSWORD, BCrypt.hashpw(password, BCrypt.gensalt()));
         values.put(COLUMN_FULL_NAME, fullName);
-        values.put(COLUMN_PIN, pin); // Storing PIN as plain text for simplicity as requested, or could be hashed
+        values.put(COLUMN_PIN, pin);
         return db.insert(TABLE_USERS, null, values);
     }
 
-    // Keep old method for backward compatibility if needed, but ideally update usages
     public long addUser(String email, String password) {
         return addUser(email, password, "", "");
     }
@@ -208,7 +207,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_PIN, pin);
         return db.update(TABLE_USERS, values, COLUMN_EMAIL + " = ?", new String[]{currentEmail}) > 0;
     }
-    
+
     public boolean verifyPin(String email, String pin) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_PIN}, COLUMN_EMAIL + " = ?", new String[]{email}, null, null, null);
@@ -256,7 +255,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             selectionArgs.add(endDate);
         }
         if (!TextUtils.isEmpty(category) && !"Tất cả".equalsIgnoreCase(category)) {
-             if (selection.length() > 0) selection.append(" AND ");
+            if (selection.length() > 0) selection.append(" AND ");
             selection.append(COLUMN_CATEGORY + " = ?");
             selectionArgs.add(category);
         }
@@ -480,54 +479,55 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void processRecurringExpenses() {
         List<RecurringExpense> recurringExpenses = getAllRecurringExpenses();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        Calendar calendar = Calendar.getInstance();
-        String today = dateFormat.format(calendar.getTime());
+        Calendar todayCal = Calendar.getInstance();
 
         for (RecurringExpense recurring : recurringExpenses) {
             try {
-                // Check if the current date is within the start and end dates
-                if (today.compareTo(recurring.getStartDate()) >= 0 && today.compareTo(recurring.getEndDate()) <= 0) {
-                    
-                    // Check if the expense has already been generated for this month
-                    String lastGenerated = recurring.getLastGeneratedDate();
-                    boolean shouldGenerate = false;
-                    
-                    if (lastGenerated == null || lastGenerated.isEmpty()) {
-                        shouldGenerate = true;
-                    } else {
-                        // Extract month and year to compare
-                        String currentMonthYear = today.substring(0, 7); // yyyy-MM
-                        String lastGeneratedMonthYear = lastGenerated.substring(0, 7); // yyyy-MM
-                        
-                        if (!currentMonthYear.equals(lastGeneratedMonthYear)) {
-                             shouldGenerate = true;
-                        }
-                    }
+                Calendar nextGenCal = Calendar.getInstance();
+                String lastGenDateStr = recurring.getLastGeneratedDate();
 
-                    if (shouldGenerate) {
-                        // Add to expenses table
-                        addExpense(recurring.getAmount(), recurring.getDescription() + " (Recurring)", recurring.getCategory(), today);
-                        
-                        // Update last generated date
-                        updateRecurringExpenseLastGeneratedDate(recurring.getId(), today);
-                    }
+                if (lastGenDateStr == null || lastGenDateStr.isEmpty()) {
+                    // If never generated, start from the expense's start date
+                    nextGenCal.setTime(dateFormat.parse(recurring.getStartDate()));
+                } else {
+                    // Otherwise, start from the month after the last generation
+                    nextGenCal.setTime(dateFormat.parse(lastGenDateStr));
+                    nextGenCal.add(Calendar.MONTH, 1);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+
+                Calendar endCal = Calendar.getInstance();
+                endCal.setTime(dateFormat.parse(recurring.getEndDate()));
+
+                // Loop through months until we are past today
+                while (!nextGenCal.after(todayCal) && !nextGenCal.after(endCal)) {
+                    // Check if this month is not before the recurring start date
+                    Calendar startCal = Calendar.getInstance();
+                    startCal.setTime(dateFormat.parse(recurring.getStartDate()));
+                    if (nextGenCal.get(Calendar.YEAR) > startCal.get(Calendar.YEAR) ||
+                       (nextGenCal.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) && nextGenCal.get(Calendar.MONTH) >= startCal.get(Calendar.MONTH))) {
+
+                        String generationDate = dateFormat.format(nextGenCal.getTime());
+                        addExpense(recurring.getAmount(), recurring.getDescription() + " (Recurring)", recurring.getCategory(), generationDate);
+                        updateRecurringExpenseLastGeneratedDate(recurring.getId(), generationDate);
+                    }
+                    // Move to the next month for the next potential generation
+                    nextGenCal.add(Calendar.MONTH, 1);
+                }
+            } catch (ParseException e) {
+                Log.e("DatabaseHelper", "Error processing recurring expenses for ID: " + recurring.getId(), e);
             }
         }
     }
-    
+
     // --- Income Methods ---
     public void setMonthlyIncome(String monthYear, double incomeAmount) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_MONTH_YEAR, monthYear);
         values.put(COLUMN_INCOME_AMOUNT, incomeAmount);
-        // Use REPLACE to insert or update
         db.replace(TABLE_MONTHLY_INCOME, null, values);
     }
-    
+
     public double getMonthlyIncome(String monthYear) {
         SQLiteDatabase db = this.getReadableDatabase();
         double income = 0.0;

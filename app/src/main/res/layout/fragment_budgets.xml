@@ -54,14 +54,4 @@
         android:layout_margin="16dp"
         android:text="Lưu Ngân Sách" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/addRecurringExpenseFab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_above="@id/saveButton"
-        android:layout_margin="16dp"
-        app:srcCompat="@android:drawable/ic_input_add"
-        android:contentDescription="Thêm chi phí định kỳ" />
-
 </RelativeLayout>

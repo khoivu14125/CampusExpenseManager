@@ -136,7 +136,8 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        loadDashboardData(); // Tải lại dữ liệu mỗi khi fragment được hiển thị
+        db.processRecurringExpenses(); // Process recurring expenses first
+        loadDashboardData(); // Then load the data
     }
 
     private void loadDashboardData() {

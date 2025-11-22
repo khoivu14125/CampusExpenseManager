@@ -2,25 +2,14 @@ package com.example.myapplication;
 
 public class RecurringExpense {
     private int id;
-    private double amount;
-    private String description;
     private String category;
+    private String description;
+    private double amount;
     private String startDate;
     private String endDate;
-    private String lastGeneratedDate; // To track when the expense was last added
+    private String lastGeneratedDate;
 
-    public RecurringExpense() {
-    }
-
-    public RecurringExpense(double amount, String description, String category, String startDate, String endDate, String lastGeneratedDate) {
-        this.amount = amount;
-        this.description = description;
-        this.category = category;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.lastGeneratedDate = lastGeneratedDate;
-    }
-
+    // Getters and setters
     public int getId() {
         return id;
     }
@@ -29,12 +18,12 @@ public class RecurringExpense {
         this.id = id;
     }
 
-    public double getAmount() {
-        return amount;
+    public String getCategory() {
+        return category;
     }
 
-    public void setAmount(double amount) {
-        this.amount = amount;
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public String getDescription() {
@@ -45,12 +34,12 @@ public class RecurringExpense {
         this.description = description;
     }
 
-    public String getCategory() {
-        return category;
+    public double getAmount() {
+        return amount;
     }
 
-    public void setCategory(String category) {
-        this.category = category;
+    public void setAmount(double amount) {
+        this.amount = amount;
     }
 
     public String getStartDate() {
