@@ -518,7 +518,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void processRecurringExpenses() {
         List<RecurringExpense> recurringExpenses = getAllRecurringExpenses();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        Calendar todayCal = Calendar.getInstance();
 
         for (RecurringExpense recurring : recurringExpenses) {
             try {
@@ -537,13 +536,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Calendar endCal = Calendar.getInstance();
                 endCal.setTime(dateFormat.parse(recurring.getEndDate()));
 
-                // Loop through months until we are past today
-                while (!nextGenCal.after(todayCal) && !nextGenCal.after(endCal)) {
+                // Loop through months until we are past the end date
+                while (!nextGenCal.after(endCal)) {
                     // Check if this month is not before the recurring start date
                     Calendar startCal = Calendar.getInstance();
                     startCal.setTime(dateFormat.parse(recurring.getStartDate()));
                     if (nextGenCal.get(Calendar.YEAR) > startCal.get(Calendar.YEAR) ||
-                       (nextGenCal.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) && nextGenCal.get(Calendar.MONTH) >= startCal.get(Calendar.MONTH))) {
+                            (nextGenCal.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) && nextGenCal.get(Calendar.MONTH) >= startCal.get(Calendar.MONTH))) {
 
                         String generationDate = dateFormat.format(nextGenCal.getTime());
                         addExpense(recurring.getAmount(), recurring.getDescription() + " (Recurring)", recurring.getCategory(), generationDate);
