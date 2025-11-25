@@ -271,7 +271,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             selection.append(COLUMN_CATEGORY + " = ?");
             selectionArgs.add(category);
         }
-        Cursor cursor = db.query(TABLE_EXPENSES, null, selection.length() > 0 ? selection.toString() : null, selectionArgs.toArray(new String[0]), null, null, COLUMN_DATE + " DESC");
+        // Changed sorting order to DESC (newest to oldest)
+        Cursor cursor = db.query(TABLE_EXPENSES, null, selection.length() > 0 ? selection.toString() : null, selectionArgs.toArray(new String[0]), null, null, COLUMN_DATE + " DESC, " + COLUMN_ID + " DESC");
         try {
             if (cursor.moveToFirst()) {
                 do {
