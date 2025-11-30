@@ -52,6 +52,7 @@
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/searchCategoryContainer"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -67,11 +68,30 @@
 
     </LinearLayout>
 
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/transactionTypeTabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/search_container"
+        app:tabGravity="fill"
+        app:tabMode="fixed">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Chi Phí" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thu Nhập" />
+    </com.google.android.material.tabs.TabLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/expenseRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_below="@id/search_container"
+        android:layout_below="@id/transactionTypeTabLayout"
         android:layout_alignParentBottom="true"
         android:padding="8dp"
         android:clipToPadding="false" />
@@ -84,6 +104,6 @@
         android:layout_alignParentBottom="true"
         android:layout_margin="16dp"
         app:srcCompat="@android:drawable/ic_input_add"
-        android:contentDescription="Thêm chi phí mới" />
+        android:contentDescription="Thêm giao dịch mới" />
 
 </RelativeLayout>

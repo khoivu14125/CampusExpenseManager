@@ -20,13 +20,14 @@ import java.util.Locale;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "CampusExpenseManager.db";
-    private static final int DATABASE_VERSION = 11;
+    private static final int DATABASE_VERSION = 12;
 
     private static DatabaseHelper instance;
 
     // Tables
     private static final String TABLE_USERS = "users";
     private static final String TABLE_EXPENSES = "expenses";
+    private static final String TABLE_INCOME = "income"; // New table for individual incomes
     private static final String TABLE_CATEGORY_BUDGETS = "category_budgets";
     private static final String TABLE_RECURRING_EXPENSES = "recurring_expenses";
     private static final String TABLE_MONTHLY_INCOME = "monthly_income";
@@ -40,7 +41,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_FULL_NAME = "full_name";
     private static final String COLUMN_PIN = "pin";
 
-    // Expenses columns
+    // Expenses/Income columns
     private static final String COLUMN_AMOUNT = "amount";
     private static final String COLUMN_DESCRIPTION = "description";
     private static final String COLUMN_CATEGORY = "category";
@@ -87,6 +88,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_CATEGORY + " TEXT,"
                 + COLUMN_DATE + " TEXT" + ")";
         db.execSQL(CREATE_EXPENSES_TABLE);
+        
+        String CREATE_INCOME_TABLE = "CREATE TABLE " + TABLE_INCOME + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_AMOUNT + " REAL NOT NULL,"
+                + COLUMN_DESCRIPTION + " TEXT,"
+                + COLUMN_DATE + " TEXT" + ")";
+        db.execSQL(CREATE_INCOME_TABLE);
 
         String CREATE_CATEGORY_BUDGETS_TABLE = "CREATE TABLE " + TABLE_CATEGORY_BUDGETS + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -153,6 +161,77 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
             db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
         }
+         if (oldVersion < 12) {
+            String CREATE_INCOME_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_INCOME + "("
+                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_AMOUNT + " REAL NOT NULL,"
+                + COLUMN_DESCRIPTION + " TEXT,"
+                + COLUMN_DATE + " TEXT" + ")";
+            db.execSQL(CREATE_INCOME_TABLE);
+        }
+    }
+    
+    // --- Income Methods (New) ---
+    public long addIncome(double amount, String description, String date) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_AMOUNT, amount);
+        values.put(COLUMN_DESCRIPTION, description);
+        values.put(COLUMN_DATE, date);
+        return db.insert(TABLE_INCOME, null, values);
+    }
+    
+    public double getTotalIncomeForMonth(String monthYear) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        double total = 0;
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COLUMN_AMOUNT + ") FROM " + TABLE_INCOME + " WHERE " + COLUMN_DATE + " LIKE ?", new String[]{monthYear + "%"});
+        try {
+            if (cursor.moveToFirst()) {
+                total = cursor.getDouble(0);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return total;
+    }
+
+    public List<Income> searchIncomes(String startDate, String endDate) {
+        List<Income> incomeList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        StringBuilder selection = new StringBuilder();
+        List<String> selectionArgs = new ArrayList<>();
+
+        if (!TextUtils.isEmpty(startDate)) {
+            selection.append(COLUMN_DATE + " >= ?");
+            selectionArgs.add(startDate);
+        }
+        if (!TextUtils.isEmpty(endDate)) {
+            if (selection.length() > 0) {
+                selection.append(" AND ");
+            }
+            selection.append(COLUMN_DATE + " <= ?");
+            selectionArgs.add(endDate);
+        }
+
+        Cursor cursor = db.query(TABLE_INCOME, null, selection.length() > 0 ? selection.toString() : null, selectionArgs.toArray(new String[0]), null, null, COLUMN_DATE + " DESC, " + COLUMN_ID + " DESC");
+
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    Income income = new Income();
+                    income.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)));
+                    income.setAmount(cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_AMOUNT)));
+                    income.setDescription(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION)));
+                    income.setDate(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DATE)));
+                    incomeList.add(income);
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return incomeList;
     }
 
     // --- User methods ---
@@ -557,7 +636,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    // --- Income Methods ---
+    // --- Income Methods (Legacy) ---
     public void setMonthlyIncome(String monthYear, double incomeAmount) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();

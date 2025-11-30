@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -35,13 +36,17 @@ import java.util.Locale;
 public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemClickListener {
 
     private FloatingActionButton addExpenseFab;
-    private RecyclerView expenseRecyclerView;
+    private RecyclerView recyclerView;
     private ExpenseAdapter expenseAdapter;
+    private IncomeAdapter incomeAdapter;
     private List<Expense> expenseList = new ArrayList<>();
+    private List<Income> incomeList = new ArrayList<>();
     private DatabaseHelper db;
 
     private TextInputEditText startDateEditText, endDateEditText;
     private AutoCompleteTextView searchCategoryAutoCompleteTextView;
+    private TextInputLayout searchCategoryContainer;
+    private TabLayout transactionTypeTabLayout;
 
     private final SimpleDateFormat dbDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private final SimpleDateFormat monthYearFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
@@ -58,19 +63,103 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         super.onViewCreated(view, savedInstanceState);
 
         addExpenseFab = view.findViewById(R.id.addExpenseFab);
-        expenseRecyclerView = view.findViewById(R.id.expenseRecyclerView);
+        recyclerView = view.findViewById(R.id.expenseRecyclerView);
         startDateEditText = view.findViewById(R.id.startDateEditText);
         endDateEditText = view.findViewById(R.id.endDateEditText);
         searchCategoryAutoCompleteTextView = view.findViewById(R.id.searchCategoryAutoCompleteTextView);
+        searchCategoryContainer = view.findViewById(R.id.searchCategoryContainer);
+        transactionTypeTabLayout = view.findViewById(R.id.transactionTypeTabLayout);
 
-        expenseRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         expenseAdapter = new ExpenseAdapter(expenseList, this);
-        expenseRecyclerView.setAdapter(expenseAdapter);
+        incomeAdapter = new IncomeAdapter(incomeList);
+        
+        // Default to showing expenses
+        recyclerView.setAdapter(expenseAdapter);
 
         setupSearchFields();
-        loadExpenses();
+        setupTabs();
+        loadData();
 
-        addExpenseFab.setOnClickListener(v -> showAddOrUpdateExpenseDialog(null));
+        addExpenseFab.setOnClickListener(v -> showAddChoiceDialog());
+    }
+
+    private void setupTabs() {
+        transactionTypeTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                loadData();
+            }
+            @Override public void onTabUnselected(TabLayout.Tab tab) { }
+            @Override public void onTabReselected(TabLayout.Tab tab) { }
+        });
+    }
+
+    private void loadData() {
+        int selectedTabPosition = transactionTypeTabLayout.getSelectedTabPosition();
+        if (selectedTabPosition == 0) {
+            recyclerView.setAdapter(expenseAdapter);
+            searchCategoryContainer.setVisibility(View.VISIBLE);
+            performExpenseSearch();
+        } else {
+            recyclerView.setAdapter(incomeAdapter);
+            searchCategoryContainer.setVisibility(View.GONE);
+            performIncomeSearch();
+        }
+    }
+
+    private void showAddChoiceDialog() {
+        final String[] options = {"Thêm Chi Phí", "Thêm Thu Nhập"};
+        new AlertDialog.Builder(getContext())
+                .setTitle("Chọn loại giao dịch")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showAddOrUpdateExpenseDialog(null);
+                    } else {
+                        showAddIncomeDialog();
+                    }
+                })
+                .show();
+    }
+
+    private void showAddIncomeDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_income, null);
+        builder.setView(dialogView);
+
+        final TextInputEditText amountEditText = dialogView.findViewById(R.id.incomeAmountEditText);
+        final TextInputEditText noteEditText = dialogView.findViewById(R.id.incomeNoteEditText);
+        final Button saveButton = dialogView.findViewById(R.id.saveIncomeButton);
+
+        AlertDialog dialog = builder.create();
+
+        saveButton.setOnClickListener(v -> {
+            String amountStr = amountEditText.getText().toString();
+            String note = noteEditText.getText().toString();
+
+            if (TextUtils.isEmpty(amountStr)) {
+                Toast.makeText(getContext(), "Số tiền không được để trống", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                double amount = Double.parseDouble(amountStr);
+                String dateStr = dbDateFormat.format(new Date());
+
+                long result = db.addIncome(amount, note, dateStr);
+                if (result != -1) {
+                    Toast.makeText(getContext(), "Đã thêm thu nhập thành công", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                    loadData(); // Refresh the view
+                } else {
+                    Toast.makeText(getContext(), "Lỗi khi thêm thu nhập", Toast.LENGTH_SHORT).show();
+                }
+            } catch (NumberFormatException e) {
+                Toast.makeText(getContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        dialog.show();
     }
 
     private void setupSearchFields() {
@@ -85,11 +174,11 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         TextWatcher searchWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) { performSearch(); }
+            @Override public void afterTextChanged(Editable s) { loadData(); }
         };
         startDateEditText.addTextChangedListener(searchWatcher);
         endDateEditText.addTextChangedListener(searchWatcher);
-        searchCategoryAutoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> performSearch());
+        searchCategoryAutoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> loadData());
     }
 
     private void showDatePickerDialog(final TextInputEditText dateEditText) {
@@ -101,13 +190,21 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    private void performSearch() {
+    private void performExpenseSearch() {
         String startDate = startDateEditText.getText().toString();
         String endDate = endDateEditText.getText().toString();
         String category = searchCategoryAutoCompleteTextView.getText().toString();
 
         expenseList = db.searchExpenses(startDate, endDate, category);
         expenseAdapter.updateData(expenseList);
+    }
+    
+    private void performIncomeSearch() {
+        String startDate = startDateEditText.getText().toString();
+        String endDate = endDateEditText.getText().toString();
+        
+        incomeList = db.searchIncomes(startDate, endDate);
+        incomeAdapter.updateData(incomeList);
     }
 
     private void showAddOrUpdateExpenseDialog(@Nullable final Expense expenseToUpdate) {
@@ -125,7 +222,6 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, categories);
         categoryAutoCompleteTextView.setAdapter(adapter);
 
-        // Hiển thị trường ghi chú cho tất cả danh mục
         noteTextInputLayout.setVisibility(View.VISIBLE);
 
         if (expenseToUpdate != null) {
@@ -147,7 +243,6 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
             }
 
             double amount = Double.parseDouble(amountStr);
-            // Luôn lấy giá trị note vì hiện tại tất cả danh mục đều nhập note
             String description = note;
             String dateStr = (expenseToUpdate != null) ? expenseToUpdate.getDate() : dbDateFormat.format(new Date());
 
@@ -157,15 +252,13 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
                 db.updateExpense(expenseToUpdate.getId(), amount, description, category, dateStr);
             }
             dialog.dismiss();
-            
-            // Clear filter when adding new to see the new item immediately if filters are not set
+
             if (TextUtils.isEmpty(startDateEditText.getText()) && TextUtils.isEmpty(endDateEditText.getText())) {
                  searchCategoryAutoCompleteTextView.setText("Tất cả", false);
             }
             
-            loadExpenses();
+            loadData();
 
-            // Check budget after saving
             String monthYear = monthYearFormat.format(new Date());
             checkBudgetAndShowWarning(category, monthYear);
         });
@@ -174,7 +267,7 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
 
     private void checkBudgetAndShowWarning(String category, String monthYear) {
         double categoryBudget = db.getBudgetForCategory(category, monthYear);
-        if (categoryBudget > 0) { // Only check if a budget is set
+        if (categoryBudget > 0) { 
             double categorySpending = db.getCategorySpendingForMonth(category, monthYear);
             if (categorySpending > categoryBudget) {
                 new AlertDialog.Builder(getContext())
@@ -184,10 +277,6 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
                         .show();
             }
         }
-    }
-
-    private void loadExpenses() {
-        performSearch();
     }
 
     @Override
@@ -203,7 +292,7 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
                                 .setMessage("Bạn có chắc chắn muốn xóa khoản chi này không?")
                                 .setPositiveButton("Có", (d, w) -> {
                                     db.deleteExpense(expense.getId());
-                                    loadExpenses();
+                                    loadData();
                                 })
                                 .setNegativeButton("Không", null)
                                 .show();

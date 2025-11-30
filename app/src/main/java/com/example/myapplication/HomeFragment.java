@@ -40,8 +40,6 @@ import java.util.Locale;
 public class HomeFragment extends Fragment {
 
     private TextView totalSpendingTextView, remainingBudgetTextView, totalBudgetDisplayTextView;
-    private TextView incomeDisplayTextView;
-    private Button editIncomeButton;
     private PieChart categoryPieChart;
     private DatabaseHelper db;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
@@ -69,9 +67,6 @@ public class HomeFragment extends Fragment {
         totalSpendingTextView = view.findViewById(R.id.totalSpendingTextView);
         remainingBudgetTextView = view.findViewById(R.id.remainingBudgetTextView);
         
-        incomeDisplayTextView = view.findViewById(R.id.incomeDisplayTextView);
-        editIncomeButton = view.findViewById(R.id.editIncomeButton);
-        
         categoryPieChart = view.findViewById(R.id.categoryPieChart);
         
         // Setup month navigation
@@ -92,45 +87,10 @@ public class HomeFragment extends Fragment {
             updateMonthDisplay();
             loadDashboardData();
         });
-        
-        editIncomeButton.setOnClickListener(v -> showEditIncomeDialog());
     }
     
     private void updateMonthDisplay() {
         currentMonthTextView.setText("Tháng " + displayMonthFormat.format(selectedMonthCalendar.getTime()));
-    }
-    
-    private void showEditIncomeDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Nhập thu nhập tháng");
-
-        final EditText input = new EditText(getContext());
-        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        
-        // Pre-fill with current value if exists
-        String currentMonthYear = monthYearFormat.format(selectedMonthCalendar.getTime());
-        double currentIncome = db.getMonthlyIncome(currentMonthYear);
-        if (currentIncome > 0) {
-             input.setText(String.valueOf((int)currentIncome)); // Display as int for cleaner look if possible
-        }
-        
-        builder.setView(input);
-
-        builder.setPositiveButton("Lưu", (dialog, which) -> {
-            String incomeStr = input.getText().toString();
-            if (!incomeStr.isEmpty()) {
-                try {
-                    double income = Double.parseDouble(incomeStr);
-                    db.setMonthlyIncome(currentMonthYear, income);
-                    loadDashboardData(); // Refresh UI
-                } catch (NumberFormatException e) {
-                    Toast.makeText(getContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        builder.setNegativeButton("Hủy", (dialog, which) -> dialog.cancel());
-
-        builder.show();
     }
 
     @Override
@@ -143,20 +103,27 @@ public class HomeFragment extends Fragment {
     private void loadDashboardData() {
         String currentMonthYear = monthYearFormat.format(selectedMonthCalendar.getTime());
 
-        // Load income
-        double income = db.getMonthlyIncome(currentMonthYear);
-        incomeDisplayTextView.setText(currencyFormat.format(income));
+        // Load total income for the month (calculated from the new 'income' table)
+        double totalIncome = db.getTotalIncomeForMonth(currentMonthYear);
 
         // Load and display monthly overview
         double totalSpending = db.getTotalSpendingForMonth(currentMonthYear);
         
-        // Calculate remaining budget (Income - Spending)
-        double remainingBudget = income - totalSpending;
+        // Calculate balance (Income - Spending)
+        double balance = totalIncome - totalSpending;
 
         // Update labels
-        totalBudgetDisplayTextView.setText("Tổng thu nhập: " + currencyFormat.format(income));
-        totalSpendingTextView.setText("Đã chi tiêu: " + currencyFormat.format(totalSpending));
-        remainingBudgetTextView.setText("Số dư: " + currencyFormat.format(remainingBudget));
+        totalBudgetDisplayTextView.setText(currencyFormat.format(totalIncome));
+        totalSpendingTextView.setText(currencyFormat.format(totalSpending));
+        remainingBudgetTextView.setText(currencyFormat.format(balance));
+        
+        // Change color based on balance status
+        if (balance < 0) {
+             remainingBudgetTextView.setTextColor(Color.RED);
+        } else {
+             // Use Dark Green for positive balance
+             remainingBudgetTextView.setTextColor(Color.parseColor("#006400")); 
+        }
 
         // Load and display category analysis
         setupCategoryPieChart(currentMonthYear);
