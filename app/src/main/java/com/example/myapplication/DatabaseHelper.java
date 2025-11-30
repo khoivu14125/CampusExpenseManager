@@ -180,6 +180,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_DATE, date);
         return db.insert(TABLE_INCOME, null, values);
     }
+
+    public int updateIncome(int id, double amount, String description, String date) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_AMOUNT, amount);
+        values.put(COLUMN_DESCRIPTION, description);
+        values.put(COLUMN_DATE, date);
+        return db.update(TABLE_INCOME, values, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public void deleteIncome(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_INCOME, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
+    }
     
     public double getTotalIncomeForMonth(String monthYear) {
         SQLiteDatabase db = this.getReadableDatabase();

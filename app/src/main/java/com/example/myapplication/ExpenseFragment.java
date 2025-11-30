@@ -72,7 +72,9 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         expenseAdapter = new ExpenseAdapter(expenseList, this);
-        incomeAdapter = new IncomeAdapter(incomeList);
+        
+        // Initialize IncomeAdapter with item click listener
+        incomeAdapter = new IncomeAdapter(incomeList, this::onIncomeItemClick);
         
         // Default to showing expenses
         recyclerView.setAdapter(expenseAdapter);
@@ -116,13 +118,13 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
                     if (which == 0) {
                         showAddOrUpdateExpenseDialog(null);
                     } else {
-                        showAddIncomeDialog();
+                        showAddOrUpdateIncomeDialog(null);
                     }
                 })
                 .show();
     }
 
-    private void showAddIncomeDialog() {
+    private void showAddOrUpdateIncomeDialog(@Nullable final Income incomeToUpdate) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_income, null);
         builder.setView(dialogView);
@@ -130,6 +132,12 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
         final TextInputEditText amountEditText = dialogView.findViewById(R.id.incomeAmountEditText);
         final TextInputEditText noteEditText = dialogView.findViewById(R.id.incomeNoteEditText);
         final Button saveButton = dialogView.findViewById(R.id.saveIncomeButton);
+        
+        if (incomeToUpdate != null) {
+            amountEditText.setText(String.valueOf((long)incomeToUpdate.getAmount())); // Cast to long to avoid decimals for round numbers if preferred
+            noteEditText.setText(incomeToUpdate.getDescription());
+            saveButton.setText("Cập nhật");
+        }
 
         AlertDialog dialog = builder.create();
 
@@ -144,22 +152,53 @@ public class ExpenseFragment extends Fragment implements ExpenseAdapter.OnItemCl
 
             try {
                 double amount = Double.parseDouble(amountStr);
-                String dateStr = dbDateFormat.format(new Date());
+                String dateStr = (incomeToUpdate != null) ? incomeToUpdate.getDate() : dbDateFormat.format(new Date());
 
-                long result = db.addIncome(amount, note, dateStr);
-                if (result != -1) {
-                    Toast.makeText(getContext(), "Đã thêm thu nhập thành công", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                    loadData(); // Refresh the view
+                if (incomeToUpdate == null) {
+                    long result = db.addIncome(amount, note, dateStr);
+                    if (result != -1) {
+                        Toast.makeText(getContext(), "Đã thêm thu nhập thành công", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Lỗi khi thêm thu nhập", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    Toast.makeText(getContext(), "Lỗi khi thêm thu nhập", Toast.LENGTH_SHORT).show();
+                    int result = db.updateIncome(incomeToUpdate.getId(), amount, note, dateStr);
+                    if (result > 0) {
+                        Toast.makeText(getContext(), "Đã cập nhật thu nhập", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Lỗi khi cập nhật thu nhập", Toast.LENGTH_SHORT).show();
+                    }
                 }
+                dialog.dismiss();
+                loadData(); // Refresh the view
             } catch (NumberFormatException e) {
                 Toast.makeText(getContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
             }
         });
 
         dialog.show();
+    }
+    
+    private void onIncomeItemClick(Income income) {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Chọn Hành Động")
+                .setItems(new String[]{"Cập nhật", "Xóa"}, (dialog, which) -> {
+                    if (which == 0) {
+                        showAddOrUpdateIncomeDialog(income);
+                    } else {
+                        new AlertDialog.Builder(getContext())
+                                .setTitle("Xóa Thu Nhập")
+                                .setMessage("Bạn có chắc chắn muốn xóa khoản thu nhập này không?")
+                                .setPositiveButton("Có", (d, w) -> {
+                                    db.deleteIncome(income.getId());
+                                    Toast.makeText(getContext(), "Đã xóa thu nhập", Toast.LENGTH_SHORT).show();
+                                    loadData();
+                                })
+                                .setNegativeButton("Không", null)
+                                .show();
+                    }
+                })
+                .show();
     }
 
     private void setupSearchFields() {

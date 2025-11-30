@@ -21,9 +21,15 @@ public class IncomeAdapter extends RecyclerView.Adapter<IncomeAdapter.IncomeView
     private final SimpleDateFormat dbDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private final SimpleDateFormat displayDateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    private OnItemClickListener listener;
 
-    public IncomeAdapter(List<Income> incomeList) {
+    public interface OnItemClickListener {
+        void onItemClick(Income income);
+    }
+
+    public IncomeAdapter(List<Income> incomeList, OnItemClickListener listener) {
         this.incomeList = incomeList;
+        this.listener = listener;
     }
 
     @NonNull
@@ -57,6 +63,12 @@ public class IncomeAdapter extends RecyclerView.Adapter<IncomeAdapter.IncomeView
             holder.descriptionTextView.setText("Khoản thu nhập"); // Default text if no description
             holder.descriptionTextView.setVisibility(View.VISIBLE);
         }
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(income);
+            }
+        });
     }
 
     @Override
