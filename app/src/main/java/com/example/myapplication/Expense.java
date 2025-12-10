@@ -1,13 +1,16 @@
 package com.example.myapplication;
 
+/**
+ * Lớp mô hình dữ liệu đại diện cho một khoản chi phí (Expense).
+ */
 public class Expense {
-    private int id;
-    private double amount;
-    private String description;
-    private String category;
-    private String date;
+    private int id;             // ID của khoản chi (khóa chính trong DB)
+    private double amount;      // Số tiền chi
+    private String description; // Mô tả hoặc ghi chú
+    private String category;    // Danh mục chi tiêu (Ví dụ: Ăn uống, Đi lại...)
+    private String date;        // Ngày chi tiêu (Định dạng: yyyy-MM-dd)
 
-    // Getters and setters
+    // Getters và setters
     public int getId() {
         return id;
     }

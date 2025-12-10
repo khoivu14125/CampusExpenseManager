@@ -1,10 +1,13 @@
 package com.example.myapplication;
 
+/**
+ * Lớp mô hình dữ liệu đại diện cho ngân sách của một danh mục trong một tháng cụ thể.
+ */
 public class CategoryBudget {
-    private int id;
-    private String monthYear;
-    private String category;
-    private double budgetedAmount;
+    private int id;                 // ID của bản ghi ngân sách
+    private String monthYear;       // Tháng và năm áp dụng (Định dạng: yyyy-MM)
+    private String category;        // Tên danh mục
+    private double budgetedAmount;  // Số tiền ngân sách đã đặt ra
 
     public CategoryBudget() {}
 
@@ -14,7 +17,7 @@ public class CategoryBudget {
         this.budgetedAmount = budgetedAmount;
     }
 
-    // Getters and Setters
+    // Getters và Setters
     public int getId() {
         return id;
     }

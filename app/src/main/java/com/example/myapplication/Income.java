@@ -1,10 +1,13 @@
 package com.example.myapplication;
 
+/**
+ * Lớp mô hình dữ liệu đại diện cho một khoản thu nhập (Income).
+ */
 public class Income {
-    private int id;
-    private double amount;
-    private String description;
-    private String date;
+    private int id;             // ID của khoản thu (khóa chính trong DB)
+    private double amount;      // Số tiền thu nhập
+    private String description; // Mô tả hoặc nguồn thu
+    private String date;        // Ngày thu nhập (Định dạng: yyyy-MM-dd)
 
     // Constructors
     public Income() {}
@@ -16,7 +19,7 @@ public class Income {
         this.date = date;
     }
 
-    // Getters and Setters
+    // Getters và Setters
     public int getId() {
         return id;
     }

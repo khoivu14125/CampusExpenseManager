@@ -53,18 +53,20 @@ public class RecurringExpenseFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Setup RecyclerView
+        // Thiết lập RecyclerView để hiển thị danh sách chi phí định kỳ
         recurringExpenseRecyclerView = view.findViewById(R.id.recurringExpenseRecyclerView);
         recurringExpenseRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new RecurringExpenseAdapter(recurringExpenseList, this::showDeleteConfirmationDialog);
         recurringExpenseRecyclerView.setAdapter(adapter);
 
+        // Nút thêm chi phí định kỳ mới
         FloatingActionButton fab = view.findViewById(R.id.fab_add_recurring_expense);
         fab.setOnClickListener(v -> showAddRecurringExpenseDialog());
 
         loadRecurringExpenses();
     }
 
+    // Hiển thị dialog xác nhận xóa
     private void showDeleteConfirmationDialog(RecurringExpense expense) {
         new AlertDialog.Builder(getContext())
                 .setTitle("Xóa chi phí định kỳ")
@@ -74,22 +76,25 @@ public class RecurringExpenseFragment extends Fragment {
                 .show();
     }
 
+    // Xử lý xóa chi phí định kỳ và cập nhật lại ngân sách
     private void deleteRecurringExpense(RecurringExpense expense) {
         db.deleteRecurringExpense(expense.getId());
         
-        // Xóa ngân sách đã phân bổ cho chi phí này
+        // Xóa ngân sách đã phân bổ cho chi phí này trong các tháng tương ứng
         removeBudgetsForRecurringExpense(expense.getCategory(), expense.getAmount(), expense.getStartDate(), expense.getEndDate());
         
         loadRecurringExpenses();
         Snackbar.make(rootView, "Đã xóa chi phí định kỳ và cập nhật ngân sách", Snackbar.LENGTH_SHORT).show();
     }
 
+    // Hiển thị dialog thêm chi phí định kỳ
     private void showAddRecurringExpenseDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_add_recurring_expense, null);
         builder.setView(dialogView);
 
+        // Ánh xạ view trong dialog
         final TextInputEditText amountEditText = dialogView.findViewById(R.id.amountEditText);
         final AutoCompleteTextView categoryAutoCompleteTextView = dialogView.findViewById(R.id.categoryAutoCompleteTextView);
         final TextInputEditText descriptionEditText = dialogView.findViewById(R.id.descriptionEditText);
@@ -98,10 +103,12 @@ public class RecurringExpenseFragment extends Fragment {
         final Button saveButton = dialogView.findViewById(R.id.saveButton);
         final Button cancelButton = dialogView.findViewById(R.id.cancelButton);
 
+        // Thiết lập danh sách danh mục
         String[] categories = {"Thuê nhà", "Ăn uống", "Đi lại", "Giáo dục", "Giải trí", "Sức khỏe", "Quần áo", "Tiện ích", "Wifi", "Khác"};
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, categories);
         categoryAutoCompleteTextView.setAdapter(categoryAdapter);
 
+        // Sự kiện chọn ngày
         startDateEditText.setOnClickListener(v -> showDatePickerDialog(startDateEditText));
         endDateEditText.setOnClickListener(v -> showDatePickerDialog(endDateEditText));
 
@@ -123,12 +130,14 @@ public class RecurringExpenseFragment extends Fragment {
         loadRecurringExpenses();
     }
 
+    // Tải danh sách chi phí định kỳ từ DB
     private void loadRecurringExpenses() {
         recurringExpenseList.clear();
         recurringExpenseList.addAll(db.getAllRecurringExpenses());
         adapter.notifyDataSetChanged();
     }
 
+    // Thêm chi phí định kỳ mới
     private void addRecurringExpense(EditText amountEditText, AutoCompleteTextView categoryAutoCompleteTextView, EditText descriptionEditText, EditText startDateEditText, EditText endDateEditText) {
         String amountStr = amountEditText.getText().toString();
         String category = categoryAutoCompleteTextView.getText().toString();
@@ -136,6 +145,7 @@ public class RecurringExpenseFragment extends Fragment {
         String startDate = startDateEditText.getText().toString();
         String endDate = endDateEditText.getText().toString();
 
+        // Kiểm tra nhập liệu
         if (TextUtils.isEmpty(amountStr) || TextUtils.isEmpty(category) || TextUtils.isEmpty(startDate) || TextUtils.isEmpty(endDate)) {
             Snackbar.make(rootView, "Vui lòng điền đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
             return;
@@ -147,7 +157,7 @@ public class RecurringExpenseFragment extends Fragment {
         RecurringExpense existingExpense = db.getRecurringExpenseByCategory(category);
         
         if (existingExpense != null) {
-            // Nếu đã có, xóa ngân sách cũ đã phân bổ cho chi phí này
+            // Nếu đã có, xóa ngân sách cũ đã phân bổ cho chi phí này để tránh trùng lặp/cộng dồn sai
             removeBudgetsForRecurringExpense(existingExpense.getCategory(), existingExpense.getAmount(), existingExpense.getStartDate(), existingExpense.getEndDate());
         }
 
@@ -161,15 +171,17 @@ public class RecurringExpenseFragment extends Fragment {
         // Lưu (hoặc ghi đè) chi phí định kỳ mới
         db.addRecurringExpense(expense);
         
-        // Cập nhật ngân sách mới
+        // Tự động cập nhật ngân sách cho các tháng nằm trong khoảng thời gian định kỳ
         updateBudgetsForRecurringExpense(category, amount, startDate, endDate);
 
+        // Kích hoạt xử lý tạo chi phí ngay nếu cần
         db.processRecurringExpenses();
 
         loadRecurringExpenses();
         Snackbar.make(rootView, "Đã thêm chi phí định kỳ và cập nhật ngân sách", Snackbar.LENGTH_SHORT).show();
     }
 
+    // Loại bỏ phần ngân sách đã thêm cho chi phí định kỳ (khi xóa hoặc sửa)
     private void removeBudgetsForRecurringExpense(String category, double amount, String startDate, String endDate) {
         SimpleDateFormat monthFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
         try {
@@ -181,6 +193,7 @@ public class RecurringExpenseFragment extends Fragment {
 
             startCal.set(Calendar.DAY_OF_MONTH, 1);
 
+            // Duyệt qua từng tháng trong khoảng thời gian
             while (startCal.compareTo(endCal) <= 0) {
                 String currentMonthYear = monthFormat.format(startCal.getTime());
                 // Trừ số tiền cũ khỏi ngân sách
@@ -192,6 +205,7 @@ public class RecurringExpenseFragment extends Fragment {
         }
     }
 
+    // Thêm ngân sách cho các tháng có chi phí định kỳ
     private void updateBudgetsForRecurringExpense(String category, double amount, String startDate, String endDate) {
         SimpleDateFormat monthFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
         try {
@@ -214,6 +228,7 @@ public class RecurringExpenseFragment extends Fragment {
         }
     }
 
+    // Hàm helper để cập nhật ngân sách của một tháng cụ thể
     private void updateBudgetForMonth(String monthYear, String category, double amountToAdd) {
         List<CategoryBudget> budgets = db.getCategoryBudgetsForMonth(monthYear);
         Map<String, CategoryBudget> budgetMap = budgets.stream().collect(Collectors.toMap(CategoryBudget::getCategory, Function.identity()));
@@ -237,7 +252,7 @@ public class RecurringExpenseFragment extends Fragment {
         }
     }
 
-
+    // Hiển thị dialog chọn ngày
     private void showDatePickerDialog(final EditText dateEditText) {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(getContext(), (view, year, month, dayOfMonth) -> {

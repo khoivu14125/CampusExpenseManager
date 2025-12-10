@@ -29,19 +29,24 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         editTextPin = findViewById(R.id.editTextPin);
         buttonVerify = findViewById(R.id.buttonVerify);
 
+        // Xử lý sự kiện khi nhấn nút Xác nhận
         buttonVerify.setOnClickListener(v -> {
             String email = editTextEmail.getText().toString().trim();
             String pin = editTextPin.getText().toString().trim();
 
+            // Kiểm tra nhập liệu
             if (email.isEmpty() || pin.isEmpty()) {
                 Snackbar.make(rootView, "Vui lòng nhập email và mã PIN", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
+            // Kiểm tra xem email có tồn tại trong hệ thống không
             if (db.checkUser(email)) {
+                // Kiểm tra xem mã PIN có khớp với email không
                 if (db.verifyPin(email, pin)) {
+                    // Nếu đúng, chuyển sang màn hình Đặt lại mật khẩu
                     Intent intent = new Intent(ForgotPasswordActivity.this, ResetPasswordActivity.class);
-                    intent.putExtra("email", email);
+                    intent.putExtra("email", email); // Truyền email sang màn hình tiếp theo
                     startActivity(intent);
                     finish();
                 } else {

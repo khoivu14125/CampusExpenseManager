@@ -25,8 +25,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Khởi tạo database helper
         db = DatabaseHelper.getInstance(this);
-        // Process recurring expenses on app start
+        // Xử lý các chi phí định kỳ khi mở ứng dụng (tự động thêm nếu đến ngày)
         db.processRecurringExpenses();
 
         topAppBar = findViewById(R.id.topAppBar);
@@ -34,10 +35,10 @@ public class MainActivity extends AppCompatActivity {
 
         bottomNavigationView = findViewById(R.id.bottom_navigation);
 
-        // Get user name from SharedPreferences safely
+        // Lấy tên người dùng từ SharedPreferences để hiển thị lời chào
         SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
         String userEmail = prefs.getString("USER_EMAIL", "");
-        this.userName = "Người dùng"; // Default name
+        this.userName = "Người dùng"; // Tên mặc định
         if (userEmail != null && !userEmail.isEmpty()) {
             String[] parts = userEmail.split("@");
             if (parts.length > 0 && !parts[0].isEmpty()) {
@@ -46,36 +47,38 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Handle bottom navigation item selection
+        // Xử lý sự kiện khi người dùng chọn các mục trên thanh điều hướng dưới cùng
         bottomNavigationView.setOnItemSelectedListener(item -> {
             updateFragment(item.getItemId());
             return true;
         });
 
-        // Set the default selected item on initial creation, or update title on recreation
+        // Đặt fragment mặc định là Dashboard khi mở app lần đầu
         if (savedInstanceState == null) {
             bottomNavigationView.setSelectedItemId(R.id.nav_dashboard);
         } else {
-            // On recreation, the fragment is restored, so just update the title
+            // Nếu activity được tạo lại (ví dụ xoay màn hình), cập nhật lại tiêu đề
             updateTitle(bottomNavigationView.getSelectedItemId());
         }
     }
 
+    // Chuyển đổi Fragment dựa trên item được chọn trên menu
     private void updateFragment(int itemId) {
         if (itemId == R.id.nav_dashboard) {
-            replaceFragment(new HomeFragment());
+            replaceFragment(new HomeFragment()); // Màn hình chính
         } else if (itemId == R.id.nav_expense) {
-            replaceFragment(new ExpenseFragment());
+            replaceFragment(new ExpenseFragment()); // Màn hình chi phí & thu nhập
         } else if (itemId == R.id.nav_recurring) {
-            replaceFragment(new RecurringExpenseFragment());
+            replaceFragment(new RecurringExpenseFragment()); // Màn hình chi phí định kỳ
         } else if (itemId == R.id.nav_budgets) {
-            replaceFragment(new BudgetsFragment());
+            replaceFragment(new BudgetsFragment()); // Màn hình ngân sách
         } else if (itemId == R.id.nav_profile) {
-            replaceFragment(new ProfileFragment());
+            replaceFragment(new ProfileFragment()); // Màn hình hồ sơ người dùng
         }
         updateTitle(itemId);
     }
 
+    // Cập nhật tiêu đề trên Toolbar dựa trên màn hình hiện tại
     private void updateTitle(int itemId) {
         if (itemId == R.id.nav_dashboard) {
             setGreeting(this.userName);
@@ -90,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Hiển thị lời chào theo thời gian trong ngày (Sáng, Chiều, Tối)
     private void setGreeting(String userName) {
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
@@ -108,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Hàm hỗ trợ thay thế Fragment trong container
     private void replaceFragment(Fragment fragment) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();

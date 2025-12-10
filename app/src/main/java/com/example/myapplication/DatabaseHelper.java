@@ -24,42 +24,43 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static DatabaseHelper instance;
 
-    // Tables
-    private static final String TABLE_USERS = "users";
-    private static final String TABLE_EXPENSES = "expenses";
-    private static final String TABLE_INCOME = "income"; // New table for individual incomes
-    private static final String TABLE_CATEGORY_BUDGETS = "category_budgets";
-    private static final String TABLE_RECURRING_EXPENSES = "recurring_expenses";
-    private static final String TABLE_MONTHLY_INCOME = "monthly_income";
+    // Định nghĩa tên các bảng
+    private static final String TABLE_USERS = "users"; // Bảng người dùng
+    private static final String TABLE_EXPENSES = "expenses"; // Bảng chi phí
+    private static final String TABLE_INCOME = "income"; // Bảng thu nhập chi tiết
+    private static final String TABLE_CATEGORY_BUDGETS = "category_budgets"; // Bảng ngân sách theo danh mục
+    private static final String TABLE_RECURRING_EXPENSES = "recurring_expenses"; // Bảng chi phí định kỳ
+    private static final String TABLE_MONTHLY_INCOME = "monthly_income"; // Bảng thu nhập hàng tháng (cũ/tổng quan)
 
-    // Common columns
+    // Các cột chung
     private static final String COLUMN_ID = "id";
 
-    // Users columns
+    // Các cột bảng Users
     private static final String COLUMN_EMAIL = "email";
     private static final String COLUMN_PASSWORD = "password";
     private static final String COLUMN_FULL_NAME = "full_name";
     private static final String COLUMN_PIN = "pin";
 
-    // Expenses/Income columns
+    // Các cột bảng Expenses/Income
     private static final String COLUMN_AMOUNT = "amount";
     private static final String COLUMN_DESCRIPTION = "description";
     private static final String COLUMN_CATEGORY = "category";
-    private static final String COLUMN_DATE = "date"; // Format: "yyyy-MM-dd"
+    private static final String COLUMN_DATE = "date"; // Định dạng: "yyyy-MM-dd"
 
-    // Category Budgets columns
-    private static final String COLUMN_MONTH_YEAR = "month_year"; // Format: "yyyy-MM"
+    // Các cột bảng Category Budgets
+    private static final String COLUMN_MONTH_YEAR = "month_year"; // Định dạng: "yyyy-MM"
     private static final String COLUMN_CATEGORY_NAME = "category_name";
     private static final String COLUMN_BUDGETED_AMOUNT = "budgeted_amount";
 
-    // Recurring Expenses columns
+    // Các cột bảng Recurring Expenses
     private static final String COLUMN_START_DATE = "start_date";
     private static final String COLUMN_END_DATE = "end_date";
     private static final String COLUMN_LAST_GENERATED_DATE = "last_generated_date";
 
-    // Monthly Income columns
+    // Các cột bảng Monthly Income
     private static final String COLUMN_INCOME_AMOUNT = "income_amount";
 
+    // Singleton pattern để đảm bảo chỉ có một instance của DatabaseHelper
     public static synchronized DatabaseHelper getInstance(Context context) {
         if (instance == null) {
             instance = new DatabaseHelper(context.getApplicationContext());
@@ -73,6 +74,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        // Tạo bảng Users
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_EMAIL + " TEXT UNIQUE,"
@@ -81,6 +83,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_PIN + " TEXT" + ")";
         db.execSQL(CREATE_USERS_TABLE);
 
+        // Tạo bảng Expenses
         String CREATE_EXPENSES_TABLE = "CREATE TABLE " + TABLE_EXPENSES + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_AMOUNT + " REAL NOT NULL,"
@@ -89,6 +92,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_DATE + " TEXT" + ")";
         db.execSQL(CREATE_EXPENSES_TABLE);
         
+        // Tạo bảng Income
         String CREATE_INCOME_TABLE = "CREATE TABLE " + TABLE_INCOME + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_AMOUNT + " REAL NOT NULL,"
@@ -96,6 +100,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_DATE + " TEXT" + ")";
         db.execSQL(CREATE_INCOME_TABLE);
 
+        // Tạo bảng Category Budgets
         String CREATE_CATEGORY_BUDGETS_TABLE = "CREATE TABLE " + TABLE_CATEGORY_BUDGETS + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_MONTH_YEAR + " TEXT NOT NULL,"
@@ -104,6 +109,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + "UNIQUE(" + COLUMN_MONTH_YEAR + ", " + COLUMN_CATEGORY_NAME + ") ON CONFLICT REPLACE" + ")";
         db.execSQL(CREATE_CATEGORY_BUDGETS_TABLE);
 
+        // Tạo bảng Recurring Expenses
         String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE " + TABLE_RECURRING_EXPENSES + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_AMOUNT + " REAL NOT NULL,"
@@ -114,6 +120,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_LAST_GENERATED_DATE + " TEXT" + ")";
         db.execSQL(CREATE_RECURRING_EXPENSES_TABLE);
 
+        // Tạo bảng Monthly Income
         String CREATE_MONTHLY_INCOME_TABLE = "CREATE TABLE " + TABLE_MONTHLY_INCOME + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_MONTH_YEAR + " TEXT UNIQUE,"
@@ -123,6 +130,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        // Xử lý nâng cấp database qua các version
         if (oldVersion < 8) {
             String CREATE_RECURRING_EXPENSES_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_RECURRING_EXPENSES + "("
                     + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -139,7 +147,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_FULL_NAME + " TEXT");
                 db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_PIN + " TEXT");
             } catch (Exception e) {
-                // Columns might already exist, ignoring error
+                // Các cột có thể đã tồn tại
             }
         }
         if (oldVersion < 10) {
@@ -171,7 +179,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
     
-    // --- Income Methods (New) ---
+    // --- Các phương thức quản lý Thu nhập (Income) ---
     public long addIncome(double amount, String description, String date) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -195,6 +203,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.delete(TABLE_INCOME, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
     }
     
+    // Tính tổng thu nhập cho một tháng cụ thể
     public double getTotalIncomeForMonth(String monthYear) {
         SQLiteDatabase db = this.getReadableDatabase();
         double total = 0;
@@ -209,6 +218,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return total;
     }
 
+    // Tìm kiếm thu nhập theo khoảng thời gian
     public List<Income> searchIncomes(String startDate, String endDate) {
         List<Income> incomeList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -248,11 +258,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return incomeList;
     }
 
-    // --- User methods ---
+    // --- Các phương thức quản lý Người dùng (User) ---
     public long addUser(String email, String password, String fullName, String pin) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_EMAIL, email);
+        // Mật khẩu được mã hóa bằng BCrypt trước khi lưu
         values.put(COLUMN_PASSWORD, BCrypt.hashpw(password, BCrypt.gensalt()));
         values.put(COLUMN_FULL_NAME, fullName);
         values.put(COLUMN_PIN, pin);
@@ -263,6 +274,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return addUser(email, password, "", "");
     }
 
+    // Kiểm tra đăng nhập
     public boolean checkUser(String email, String password) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(TABLE_USERS, new String[]{COLUMN_PASSWORD}, COLUMN_EMAIL + " = ?", new String[]{email}, null, null, null);
@@ -334,7 +346,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.update(TABLE_USERS, values, COLUMN_EMAIL + " = ?", new String[]{email}) > 0;
     }
 
-    // --- Expense methods ---
+    // --- Các phương thức quản lý Chi phí (Expense) ---
     public long addExpense(double amount, String description, String category, String date) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -345,6 +357,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.insert(TABLE_EXPENSES, null, values);
     }
 
+    // Tìm kiếm chi phí theo nhiều tiêu chí
     public List<Expense> searchExpenses(String startDate, String endDate, String category) {
         List<Expense> expenseList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -364,7 +377,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             selection.append(COLUMN_CATEGORY + " = ?");
             selectionArgs.add(category);
         }
-        // Changed sorting order to DESC (newest to oldest)
+        // Sắp xếp theo ngày giảm dần (mới nhất lên đầu)
         Cursor cursor = db.query(TABLE_EXPENSES, null, selection.length() > 0 ? selection.toString() : null, selectionArgs.toArray(new String[0]), null, null, COLUMN_DATE + " DESC, " + COLUMN_ID + " DESC");
         try {
             if (cursor.moveToFirst()) {
@@ -399,7 +412,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.delete(TABLE_EXPENSES, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
-    // --- Dashboard & Alert Methods ---
+    // --- Các phương thức cho Dashboard & Báo cáo ---
     public double getTotalSpendingForMonth(String monthYear) {
         SQLiteDatabase db = this.getReadableDatabase();
         double total = 0;
@@ -428,6 +441,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return total;
     }
 
+    // Lấy chi tiêu theo từng danh mục trong tháng để vẽ biểu đồ
     public List<CategorySpending> getSpendingByCategoryForMonth(String monthYear) {
         List<CategorySpending> spendingList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -493,7 +507,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return budgetAmount;
     }
 
-    // --- Category Budget methods ---
+    // --- Các phương thức quản lý Ngân sách (Budget) ---
     public void saveCategoryBudgets(List<CategoryBudget> budgets) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
@@ -538,7 +552,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return budgetList;
     }
 
-    // --- Recurring Expenses methods ---
+    // --- Các phương thức quản lý Chi phí Định kỳ (Recurring Expenses) ---
     public long addRecurringExpense(RecurringExpense recurringExpense) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -608,6 +622,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.delete(TABLE_RECURRING_EXPENSES, COLUMN_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
+    // Tự động xử lý các chi phí định kỳ khi mở ứng dụng
     public void processRecurringExpenses() {
         List<RecurringExpense> recurringExpenses = getAllRecurringExpenses();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -618,10 +633,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String lastGenDateStr = recurring.getLastGeneratedDate();
 
                 if (lastGenDateStr == null || lastGenDateStr.isEmpty()) {
-                    // If never generated, start from the expense's start date
+                    // Nếu chưa bao giờ tạo, bắt đầu từ ngày bắt đầu của chi phí
                     nextGenCal.setTime(dateFormat.parse(recurring.getStartDate()));
                 } else {
-                    // Otherwise, start from the month after the last generation
+                    // Nếu đã tạo, bắt đầu từ tháng tiếp theo
                     nextGenCal.setTime(dateFormat.parse(lastGenDateStr));
                     nextGenCal.add(Calendar.MONTH, 1);
                 }
@@ -629,23 +644,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Calendar endCal = Calendar.getInstance();
                 endCal.setTime(dateFormat.parse(recurring.getEndDate()));
 
-                // Loop through months until we are past the end date
+                // Lặp qua từng tháng cho đến khi vượt quá ngày kết thúc
                 while (!nextGenCal.after(endCal)) {
-                    // Check if this month is not before the recurring start date
+                    // Kiểm tra xem tháng này có hợp lệ không
                     Calendar startCal = Calendar.getInstance();
                     startCal.setTime(dateFormat.parse(recurring.getStartDate()));
                     if (nextGenCal.get(Calendar.YEAR) > startCal.get(Calendar.YEAR) ||
                             (nextGenCal.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) && nextGenCal.get(Calendar.MONTH) >= startCal.get(Calendar.MONTH))) {
 
                         String generationDate = dateFormat.format(nextGenCal.getTime());
-                        addExpense(recurring.getAmount(), recurring.getDescription() + " (Recurring)", recurring.getCategory(), generationDate);
+                        // Thêm chi phí vào bảng Expenses
+                        addExpense(recurring.getAmount(), recurring.getDescription() + " (Định kỳ)", recurring.getCategory(), generationDate);
+                        // Cập nhật ngày tạo cuối cùng
                         updateRecurringExpenseLastGeneratedDate(recurring.getId(), generationDate);
                     }
-                    // Move to the next month for the next potential generation
+                    // Chuyển sang tháng tiếp theo
                     nextGenCal.add(Calendar.MONTH, 1);
                 }
             } catch (ParseException e) {
-                Log.e("DatabaseHelper", "Error processing recurring expenses for ID: " + recurring.getId(), e);
+                Log.e("DatabaseHelper", "Lỗi khi xử lý chi phí định kỳ ID: " + recurring.getId(), e);
             }
         }
     }

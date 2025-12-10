@@ -44,7 +44,7 @@ public class HomeFragment extends Fragment {
     private DatabaseHelper db;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
     
-    // Month navigation
+    // Điều hướng tháng
     private ImageButton prevMonthButton, nextMonthButton;
     private TextView currentMonthTextView;
     private Calendar selectedMonthCalendar;
@@ -55,7 +55,7 @@ public class HomeFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         db = DatabaseHelper.getInstance(getContext());
-        selectedMonthCalendar = Calendar.getInstance(); // Default to current month
+        selectedMonthCalendar = Calendar.getInstance(); // Mặc định là tháng hiện tại
         return inflater.inflate(R.layout.fragment_home, container, false);
     }
 
@@ -63,25 +63,28 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Ánh xạ các view
         totalBudgetDisplayTextView = view.findViewById(R.id.totalBudgetDisplayTextView);
         totalSpendingTextView = view.findViewById(R.id.totalSpendingTextView);
         remainingBudgetTextView = view.findViewById(R.id.remainingBudgetTextView);
         
         categoryPieChart = view.findViewById(R.id.categoryPieChart);
         
-        // Setup month navigation
+        // Thiết lập điều hướng tháng
         prevMonthButton = view.findViewById(R.id.prevMonthButton);
         nextMonthButton = view.findViewById(R.id.nextMonthButton);
         currentMonthTextView = view.findViewById(R.id.currentMonthTextView);
         
         updateMonthDisplay();
         
+        // Xử lý sự kiện chuyển tháng trước
         prevMonthButton.setOnClickListener(v -> {
             selectedMonthCalendar.add(Calendar.MONTH, -1);
             updateMonthDisplay();
             loadDashboardData();
         });
         
+        // Xử lý sự kiện chuyển tháng sau
         nextMonthButton.setOnClickListener(v -> {
             selectedMonthCalendar.add(Calendar.MONTH, 1);
             updateMonthDisplay();
@@ -89,6 +92,7 @@ public class HomeFragment extends Fragment {
         });
     }
     
+    // Cập nhật text hiển thị tháng
     private void updateMonthDisplay() {
         currentMonthTextView.setText("Tháng " + displayMonthFormat.format(selectedMonthCalendar.getTime()));
     }
@@ -96,43 +100,46 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        db.processRecurringExpenses(); // Process recurring expenses first
-        loadDashboardData(); // Then load the data
+        db.processRecurringExpenses(); // Xử lý các chi phí định kỳ trước khi load dữ liệu
+        loadDashboardData(); // Load dữ liệu dashboard
     }
 
+    // Tải và hiển thị dữ liệu cho dashboard
     private void loadDashboardData() {
         String currentMonthYear = monthYearFormat.format(selectedMonthCalendar.getTime());
 
-        // Load total income for the month (calculated from the new 'income' table)
+        // Lấy tổng thu nhập trong tháng
         double totalIncome = db.getTotalIncomeForMonth(currentMonthYear);
 
-        // Load and display monthly overview
+        // Lấy tổng chi tiêu trong tháng
         double totalSpending = db.getTotalSpendingForMonth(currentMonthYear);
         
-        // Calculate balance (Income - Spending)
+        // Tính toán số dư (Thu nhập - Chi tiêu)
         double balance = totalIncome - totalSpending;
 
-        // Update labels
+        // Cập nhật giao diện
         totalBudgetDisplayTextView.setText(currencyFormat.format(totalIncome));
         totalSpendingTextView.setText(currencyFormat.format(totalSpending));
         remainingBudgetTextView.setText(currencyFormat.format(balance));
         
-        // Change color based on balance status
+        // Đổi màu sắc dựa trên trạng thái số dư (Dương: Xanh, Âm: Đỏ)
         if (balance < 0) {
              remainingBudgetTextView.setTextColor(Color.RED);
         } else {
-             // Use Dark Green for positive balance
+             // Màu xanh đậm cho số dư dương
              remainingBudgetTextView.setTextColor(Color.parseColor("#006400")); 
         }
 
-        // Load and display category analysis
+        // Hiển thị biểu đồ tròn phân tích chi tiêu theo danh mục
         setupCategoryPieChart(currentMonthYear);
     }
 
+    // Cấu hình và hiển thị biểu đồ tròn (PieChart)
     private void setupCategoryPieChart(String monthYear) {
         categoryPieChart.setVisibility(View.VISIBLE);
         List<DatabaseHelper.CategorySpending> spendingList = db.getSpendingByCategoryForMonth(monthYear);
 
+        // Nếu không có dữ liệu, hiển thị thông báo
         if (spendingList.isEmpty()) {
             categoryPieChart.clear();
             categoryPieChart.setNoDataText("Không có dữ liệu chi tiêu cho tháng này");
@@ -140,13 +147,14 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        // Tạo dữ liệu cho biểu đồ
         List<PieEntry> entries = new ArrayList<>();
         for (DatabaseHelper.CategorySpending spending : spendingList) {
             entries.add(new PieEntry((float) spending.totalAmount, spending.category));
         }
 
         PieDataSet dataSet = new PieDataSet(entries, "Chi tiêu theo danh mục");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS); // Sử dụng bảng màu mặc định
         dataSet.setValueTextColor(Color.BLACK);
         dataSet.setValueTextSize(12f);
 
@@ -154,6 +162,6 @@ public class HomeFragment extends Fragment {
         categoryPieChart.setData(pieData);
         categoryPieChart.getDescription().setEnabled(false);
         categoryPieChart.setEntryLabelColor(Color.BLACK);
-        categoryPieChart.invalidate(); // Refresh chart
+        categoryPieChart.invalidate(); // Làm mới biểu đồ
     }
 }

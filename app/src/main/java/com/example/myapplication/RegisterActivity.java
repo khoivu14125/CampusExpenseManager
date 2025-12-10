@@ -23,9 +23,11 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
+        // Khởi tạo DatabaseHelper
         db = DatabaseHelper.getInstance(this);
         rootView = findViewById(android.R.id.content);
         
+        // Ánh xạ view
         editTextFullName = findViewById(R.id.editTextFullName);
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPassword = findViewById(R.id.editTextPassword);
@@ -33,29 +35,33 @@ public class RegisterActivity extends AppCompatActivity {
         buttonRegister = findViewById(R.id.buttonRegister);
         textViewLogin = findViewById(R.id.textViewLogin);
 
+        // Xử lý sự kiện nhấn nút Đăng ký
         buttonRegister.setOnClickListener(v -> {
             String fullName = editTextFullName.getText().toString().trim();
             String email = editTextEmail.getText().toString().trim();
             String password = editTextPassword.getText().toString().trim();
             String pin = editTextPin.getText().toString().trim();
 
+            // Kiểm tra nhập liệu đầy đủ
             if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || pin.isEmpty()) {
                 Snackbar.make(rootView, "Vui lòng nhập đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
                 return;
             }
             
+            // Validate mã PIN
             if (pin.length() != 6) {
                 Snackbar.make(rootView, "Mã PIN phải gồm 6 chữ số", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
+            // Thêm người dùng mới vào cơ sở dữ liệu
             long result = db.addUser(email, password, fullName, pin);
             if (result != -1) {
                 Snackbar.make(rootView, "Đăng ký thành công", Snackbar.LENGTH_SHORT)
                         .addCallback(new Snackbar.Callback() {
                             @Override
                             public void onDismissed(Snackbar transientBottomBar, int event) {
-                                finish();
+                                finish(); // Quay lại màn hình đăng nhập
                             }
                         }).show();
             } else {
@@ -63,6 +69,7 @@ public class RegisterActivity extends AppCompatActivity {
             }
         });
 
+        // Quay lại màn hình đăng nhập
         textViewLogin.setOnClickListener(v -> {
             finish();
         });

@@ -15,12 +15,17 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.text.DecimalFormat;
 import java.util.List;
 
+/**
+ * Adapter cho RecyclerView hiển thị danh sách ngân sách theo danh mục.
+ * Cho phép người dùng nhập/sửa số tiền ngân sách trực tiếp.
+ */
 public class CategoryBudgetAdapter extends RecyclerView.Adapter<CategoryBudgetAdapter.CategoryBudgetViewHolder> {
 
     private List<CategoryBudget> budgetList;
     private OnBudgetChangeListener listener;
     private final DecimalFormat decimalFormat = new DecimalFormat("#.##");
 
+    // Interface để thông báo khi có thay đổi về ngân sách (để cập nhật tổng ngân sách)
     public interface OnBudgetChangeListener {
         void onBudgetChanged();
     }
@@ -40,7 +45,7 @@ public class CategoryBudgetAdapter extends RecyclerView.Adapter<CategoryBudgetAd
 
     @Override
     public void onBindViewHolder(@NonNull CategoryBudgetViewHolder holder, int position) {
-        // Remove any existing watcher to prevent unwanted updates during view recycling.
+        // Gỡ bỏ TextWatcher cũ để tránh việc kích hoạt listener không mong muốn khi tái sử dụng view
         if (holder.textWatcher != null) {
             holder.categoryBudgetEditText.removeTextChangedListener(holder.textWatcher);
         }
@@ -48,14 +53,14 @@ public class CategoryBudgetAdapter extends RecyclerView.Adapter<CategoryBudgetAd
         CategoryBudget budget = budgetList.get(position);
         holder.categoryNameTextView.setText(budget.getCategory());
 
-        // Set the text *after* removing the listener.
+        // Hiển thị số tiền ngân sách (nếu > 0)
         if (budget.getBudgetedAmount() > 0) {
             holder.categoryBudgetEditText.setText(decimalFormat.format(budget.getBudgetedAmount()));
         } else {
             holder.categoryBudgetEditText.setText("");
         }
 
-        // Create a new watcher for the current item.
+        // Tạo TextWatcher mới cho item hiện tại
         holder.textWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -65,7 +70,7 @@ public class CategoryBudgetAdapter extends RecyclerView.Adapter<CategoryBudgetAd
 
             @Override
             public void afterTextChanged(Editable s) {
-                // Ensure we are updating the correct budget item.
+                // Đảm bảo cập nhật đúng item trong danh sách
                 int currentPosition = holder.getAdapterPosition();
                 if (currentPosition != RecyclerView.NO_POSITION) {
                     try {
@@ -73,6 +78,7 @@ public class CategoryBudgetAdapter extends RecyclerView.Adapter<CategoryBudgetAd
                         double amount = input.isEmpty() ? 0.0 : Double.parseDouble(input);
                         budgetList.get(currentPosition).setBudgetedAmount(amount);
 
+                        // Thông báo cho Fragment biết ngân sách đã thay đổi
                         if (listener != null) {
                             listener.onBudgetChanged();
                         }

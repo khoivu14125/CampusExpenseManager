@@ -15,6 +15,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Adapter hiển thị danh sách các khoản chi phí.
+ */
 public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder> {
 
     private List<Expense> expenseList;
@@ -23,6 +26,7 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
     private final SimpleDateFormat displayDateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
+    // Interface xử lý sự kiện click vào item (để sửa hoặc xóa)
     public interface OnItemClickListener {
         void onItemClick(Expense expense);
     }
@@ -45,18 +49,18 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
         Expense expense = expenseList.get(position);
         holder.categoryTextView.setText(expense.getCategory());
 
-        // Format date for display
+        // Định dạng ngày hiển thị (từ yyyy-MM-dd sang dd-MM-yyyy)
         try {
             Date date = dbDateFormat.parse(expense.getDate());
             holder.dateTextView.setText(displayDateFormat.format(date));
         } catch (ParseException e) {
-            holder.dateTextView.setText(expense.getDate()); // Fallback to raw date
+            holder.dateTextView.setText(expense.getDate()); // Fallback nếu lỗi
         }
 
-        // Format currency
+        // Định dạng số tiền theo chuẩn tiền tệ Việt Nam
         holder.amountTextView.setText(currencyFormat.format(expense.getAmount()));
 
-        // Handle description for ALL categories
+        // Hiển thị ghi chú nếu có
         if (expense.getDescription() != null && !expense.getDescription().isEmpty()) {
             holder.descriptionTextView.setText("Ghi chú: " + expense.getDescription());
             holder.descriptionTextView.setVisibility(View.VISIBLE);
@@ -64,6 +68,7 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
             holder.descriptionTextView.setVisibility(View.GONE);
         }
 
+        // Gán sự kiện click
         holder.itemView.setOnClickListener(v -> listener.onItemClick(expense));
     }
 
@@ -72,6 +77,7 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
         return expenseList.size();
     }
 
+    // Cập nhật dữ liệu mới cho adapter
     public void updateData(List<Expense> newExpenseList) {
         this.expenseList = newExpenseList;
         notifyDataSetChanged();

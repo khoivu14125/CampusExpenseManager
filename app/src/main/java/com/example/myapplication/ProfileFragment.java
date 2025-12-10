@@ -38,6 +38,7 @@ public class ProfileFragment extends Fragment {
 
         db = DatabaseHelper.getInstance(getContext());
 
+        // Ánh xạ view
         emailTextView = view.findViewById(R.id.emailTextView);
         fullNameEditText = view.findViewById(R.id.fullNameEditText);
         pinEditText = view.findViewById(R.id.pinEditText);
@@ -45,33 +46,38 @@ public class ProfileFragment extends Fragment {
         changePasswordButton = view.findViewById(R.id.changePasswordButton);
         logoutButton = view.findViewById(R.id.logoutButton);
 
-        // Get email from SharedPreferences
+        // Lấy email người dùng hiện tại từ SharedPreferences
         SharedPreferences prefs = getActivity().getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
         currentUserEmail = prefs.getString("USER_EMAIL", "N/A");
         
+        // Tải thông tin người dùng từ DB
         loadUserProfile();
 
+        // Sự kiện cập nhật thông tin cá nhân
         updateProfileButton.setOnClickListener(v -> updateUserProfile());
 
+        // Sự kiện chuyển sang màn hình đổi mật khẩu
         changePasswordButton.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), ResetPasswordActivity.class);
-            intent.putExtra("email", currentUserEmail);
+            intent.putExtra("email", currentUserEmail); // Truyền email qua intent
             startActivity(intent);
         });
 
+        // Sự kiện đăng xuất
         logoutButton.setOnClickListener(v -> {
-            // Clear SharedPreferences
+            // Xóa dữ liệu phiên đăng nhập trong SharedPreferences
             SharedPreferences.Editor editor = prefs.edit();
             editor.clear();
             editor.apply();
 
-            // Navigate to Login screen
+            // Quay về màn hình Đăng nhập và xóa hết các màn hình trước đó
             Intent intent = new Intent(getActivity(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
         });
     }
 
+    // Tải và hiển thị thông tin người dùng (Email, Tên, PIN)
     private void loadUserProfile() {
         DatabaseHelper.User user = db.getUser(currentUserEmail);
         if (user != null) {
@@ -81,25 +87,28 @@ public class ProfileFragment extends Fragment {
         }
     }
 
+    // Cập nhật thông tin người dùng trong DB
     private void updateUserProfile() {
         String fullName = fullNameEditText.getText().toString().trim();
         String pin = pinEditText.getText().toString().trim();
 
+        // Kiểm tra nhập liệu
         if (fullName.isEmpty() || pin.isEmpty()) {
-            Log.d("ProfileFragment", "Vui lòng nhập đầy đủ thông tin");
+            Toast.makeText(getContext(), "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (pin.length() != 6) {
-            Log.d("ProfileFragment", "Mã PIN phải gồm 6 chữ số");
+            Toast.makeText(getContext(), "Mã PIN phải gồm 6 chữ số", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // Thực hiện cập nhật
         boolean success = db.updateUserProfile(currentUserEmail, fullName, pin);
         if (success) {
-            Log.d("ProfileFragment", "Cập nhật thông tin thành công");
+            Toast.makeText(getContext(), "Cập nhật thông tin thành công", Toast.LENGTH_SHORT).show();
         } else {
-            Log.d("ProfileFragment", "Cập nhật thất bại");
+            Toast.makeText(getContext(), "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
         }
     }
 }

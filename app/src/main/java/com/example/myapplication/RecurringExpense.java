@@ -1,15 +1,18 @@
 package com.example.myapplication;
 
+/**
+ * Lớp mô hình dữ liệu đại diện cho một khoản chi phí định kỳ (lặp lại hàng tháng).
+ */
 public class RecurringExpense {
-    private int id;
-    private String category;
-    private String description;
-    private double amount;
-    private String startDate;
-    private String endDate;
-    private String lastGeneratedDate;
+    private int id;                 // ID của chi phí định kỳ
+    private String category;        // Danh mục chi tiêu
+    private String description;     // Mô tả
+    private double amount;          // Số tiền chi định kỳ
+    private String startDate;       // Ngày bắt đầu hiệu lực (yyyy-MM-dd)
+    private String endDate;         // Ngày kết thúc hiệu lực (yyyy-MM-dd)
+    private String lastGeneratedDate; // Ngày cuối cùng chi phí này được tự động tạo ra
 
-    // Getters and setters
+    // Getters và setters
     public int getId() {
         return id;
     }

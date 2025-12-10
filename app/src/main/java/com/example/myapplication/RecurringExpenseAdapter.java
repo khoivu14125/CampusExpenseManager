@@ -13,12 +13,16 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Adapter hiển thị danh sách các khoản chi phí định kỳ.
+ */
 public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpenseAdapter.RecurringExpenseViewHolder> {
 
     private List<RecurringExpense> recurringExpenseList;
     private OnDeleteClickListener onDeleteClickListener;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
+    // Interface xử lý sự kiện click vào nút xóa
     public interface OnDeleteClickListener {
         void onDeleteClick(RecurringExpense expense);
     }
@@ -42,10 +46,11 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
         holder.categoryTextView.setText(expense.getCategory());
         holder.amountTextView.setText(currencyFormat.format(expense.getAmount()));
         
-        // Set start and end dates individually
+        // Hiển thị ngày bắt đầu và kết thúc
         holder.startDateTextView.setText(expense.getStartDate());
         holder.endDateTextView.setText(expense.getEndDate());
         
+        // Hiển thị mô tả nếu có
         if (expense.getDescription() != null && !expense.getDescription().isEmpty()) {
             holder.descriptionTextView.setText(expense.getDescription());
             holder.descriptionTextView.setVisibility(View.VISIBLE);
@@ -53,6 +58,7 @@ public class RecurringExpenseAdapter extends RecyclerView.Adapter<RecurringExpen
             holder.descriptionTextView.setVisibility(View.GONE);
         }
 
+        // Sự kiện xóa
         holder.deleteButton.setOnClickListener(v -> {
             if (onDeleteClickListener != null) {
                 onDeleteClickListener.onDeleteClick(expense);

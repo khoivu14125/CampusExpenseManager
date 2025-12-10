@@ -25,7 +25,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_media_previous"
+                android:src="@drawable/ic_chevron_left"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
@@ -42,7 +42,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_media_next"
+                android:src="@drawable/ic_chevron_right"
                 app:tint="?attr/colorPrimary" />
         </LinearLayout>
 

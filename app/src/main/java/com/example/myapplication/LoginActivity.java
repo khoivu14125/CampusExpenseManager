@@ -25,55 +25,59 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        // Khởi tạo DatabaseHelper để kiểm tra thông tin đăng nhập
         db = DatabaseHelper.getInstance(this);
         rootView = findViewById(android.R.id.content);
         
+        // Ánh xạ các view
         editTextEmail = findViewById(R.id.editTextEmail);
         editTextPassword = findViewById(R.id.editTextPassword);
         buttonLogin = findViewById(R.id.buttonLogin);
         textViewRegister = findViewById(R.id.textViewRegister);
         textViewForgotPassword = findViewById(R.id.textViewForgotPassword);
 
+        // Xử lý sự kiện khi nhấn nút Đăng nhập
         buttonLogin.setOnClickListener(v -> {
             String email = editTextEmail.getText().toString().trim();
             String password = editTextPassword.getText().toString().trim();
 
+            // Kiểm tra đầu vào
             if (email.isEmpty() || password.isEmpty()) {
                 Snackbar.make(rootView, "Vui lòng nhập đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
+            // Kiểm tra thông tin đăng nhập trong cơ sở dữ liệu
             boolean isAuthenticated = db.checkUser(email, password);
             if (isAuthenticated) {
-                // Save email to SharedPreferences
+                // Lưu email người dùng vào SharedPreferences để duy trì phiên đăng nhập hoặc lấy thông tin
                 SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putString("USER_EMAIL", email);
                 editor.apply();
 
+                // Thông báo thành công và chuyển sang màn hình chính
                 Snackbar.make(rootView, "Đăng nhập thành công", Snackbar.LENGTH_SHORT)
                         .addCallback(new Snackbar.Callback() {
                             @Override
                             public void onDismissed(Snackbar transientBottomBar, int event) {
                                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                                 startActivity(intent);
-                                finish();
+                                finish(); // Đóng màn hình đăng nhập
                             }
                         }).show();
-                // For faster transition if snackbar delay is not desired, uncomment below and remove callback
-                // Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                // startActivity(intent);
-                // finish();
             } else {
                 Snackbar.make(rootView, "Email hoặc mật khẩu không chính xác", Snackbar.LENGTH_LONG).show();
             }
         });
 
+        // Chuyển sang màn hình Đăng ký
         textViewRegister.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
 
+        // Chuyển sang màn hình Quên mật khẩu
         textViewForgotPassword.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
             startActivity(intent);

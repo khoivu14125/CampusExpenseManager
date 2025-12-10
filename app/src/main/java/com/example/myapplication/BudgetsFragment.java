@@ -50,29 +50,35 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Ánh xạ view
         monthYearEditText = view.findViewById(R.id.monthYearEditText);
         budgetsRecyclerView = view.findViewById(R.id.budgetsRecyclerView);
         saveButton = view.findViewById(R.id.saveButton);
         totalBudgetTextView = view.findViewById(R.id.totalBudgetTextView);
 
+        // Thiết lập RecyclerView
         budgetsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new CategoryBudgetAdapter(currentBudgets, this);
         budgetsRecyclerView.setAdapter(adapter);
 
+        // Xử lý sự kiện chọn tháng và lưu ngân sách
         monthYearEditText.setOnClickListener(v -> showMonthYearPickerDialog());
         saveButton.setOnClickListener(v -> saveBudgets());
 
+        // Mặc định chọn tháng hiện tại
         setCurrentMonthYear();
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        // Tải lại ngân sách khi quay lại màn hình này
         if (selectedMonthYear != null) {
             loadBudgetsForMonth(selectedMonthYear);
         }
     }
 
+    // Thiết lập tháng hiện tại làm mặc định
     private void setCurrentMonthYear() {
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
@@ -81,6 +87,7 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
         loadBudgetsForMonth(selectedMonthYear);
     }
 
+    // Hiển thị dialog chọn Tháng/Năm
     private void showMonthYearPickerDialog() {
         MaterialDatePicker.Builder<Long> builder = MaterialDatePicker.Builder.datePicker();
         builder.setTitleText("Chọn Tháng và Năm");
@@ -98,15 +105,19 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
         picker.show(getChildFragmentManager(), picker.toString());
     }
 
+    // Tải ngân sách cho tháng đã chọn
     private void loadBudgetsForMonth(String monthYear) {
+        // Lấy danh sách ngân sách đã lưu từ DB
         Map<String, CategoryBudget> existingBudgetsMap = db.getCategoryBudgetsForMonth(monthYear)
                 .stream()
                 .collect(Collectors.toMap(CategoryBudget::getCategory, Function.identity()));
 
+        // Danh sách các danh mục chuẩn
         List<String> standardCategories = Arrays.asList("Thuê nhà", "Ăn uống", "Đi lại", "Giáo dục", "Giải trí", "Sức khỏe", "Quần áo", "Tiện ích", "Wifi", "Khác");
 
         currentBudgets.clear();
         
+        // Duyệt qua các danh mục chuẩn, nếu đã có ngân sách thì dùng, chưa có thì tạo mới với giá trị 0
         for (String categoryName : standardCategories) {
             CategoryBudget budget = existingBudgetsMap.get(categoryName);
             if (budget == null) {
@@ -115,10 +126,12 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
             currentBudgets.add(budget);
         }
 
+        // Cập nhật dữ liệu cho adapter
         adapter.setData(currentBudgets);
         updateTotalBudget();
     }
 
+    // Lưu toàn bộ ngân sách hiển thị vào DB
     private void saveBudgets() {
         List<CategoryBudget> budgetsToSave = adapter.getBudgetData();
 
@@ -127,10 +140,12 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
             return;
         }
 
+        // Gán tháng/năm cho tất cả các mục ngân sách
         for (CategoryBudget budget : budgetsToSave) {
             budget.setMonthYear(selectedMonthYear);
         }
 
+        // Xóa ngân sách cũ và lưu mới (cách đơn giản để cập nhật)
         db.deleteBudgetsForMonth(selectedMonthYear);
         db.saveCategoryBudgets(budgetsToSave);
         
@@ -138,6 +153,7 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
         Toast.makeText(getContext(), "Đã lưu ngân sách cho " + selectedMonthYear, Toast.LENGTH_SHORT).show();
     }
 
+    // Tính toán và hiển thị tổng ngân sách dự kiến
     private void updateTotalBudget() {
         double total = 0;
         for (CategoryBudget budget : currentBudgets) {
@@ -147,6 +163,7 @@ public class BudgetsFragment extends Fragment implements CategoryBudgetAdapter.O
         totalBudgetTextView.setText(String.format("Tổng: %s", currencyFormat.format(total)));
     }
 
+    // Callback khi giá trị ngân sách trong adapter thay đổi
     @Override
     public void onBudgetChanged() {
         updateTotalBudget();

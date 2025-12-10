@@ -29,29 +29,34 @@ public class ResetPasswordActivity extends AppCompatActivity {
         editTextConfirmPassword = findViewById(R.id.editTextConfirmPassword);
         buttonResetPassword = findViewById(R.id.buttonResetPassword);
 
+        // Nhận email từ Intent được truyền tới
         email = getIntent().getStringExtra("email");
 
+        // Xử lý sự kiện khi nhấn nút Đặt lại mật khẩu
         buttonResetPassword.setOnClickListener(v -> {
             String newPassword = editTextNewPassword.getText().toString().trim();
             String confirmPassword = editTextConfirmPassword.getText().toString().trim();
 
+            // Kiểm tra nhập liệu
             if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
                 Snackbar.make(rootView, "Vui lòng nhập đầy đủ thông tin", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
+            // Kiểm tra mật khẩu nhập lại có khớp không
             if (!newPassword.equals(confirmPassword)) {
                 Snackbar.make(rootView, "Mật khẩu không khớp", Snackbar.LENGTH_LONG).show();
                 return;
             }
 
+            // Cập nhật mật khẩu mới vào DB
             boolean isUpdated = db.updatePassword(email, newPassword);
             if (isUpdated) {
                 Snackbar.make(rootView, "Đặt lại mật khẩu thành công", Snackbar.LENGTH_SHORT)
                         .addCallback(new Snackbar.Callback() {
                             @Override
                             public void onDismissed(Snackbar transientBottomBar, int event) {
-                                finish();
+                                finish(); // Đóng màn hình sau khi thành công
                             }
                         }).show();
             } else {

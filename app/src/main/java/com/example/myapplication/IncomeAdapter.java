@@ -15,6 +15,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Adapter hiển thị danh sách các khoản thu nhập.
+ */
 public class IncomeAdapter extends RecyclerView.Adapter<IncomeAdapter.IncomeViewHolder> {
 
     private List<Income> incomeList;
@@ -23,6 +26,7 @@ public class IncomeAdapter extends RecyclerView.Adapter<IncomeAdapter.IncomeView
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
     private OnItemClickListener listener;
 
+    // Interface xử lý sự kiện click vào item
     public interface OnItemClickListener {
         void onItemClick(Income income);
     }
@@ -44,26 +48,27 @@ public class IncomeAdapter extends RecyclerView.Adapter<IncomeAdapter.IncomeView
     public void onBindViewHolder(@NonNull IncomeViewHolder holder, int position) {
         Income income = incomeList.get(position);
 
-        // Format date for display
+        // Định dạng ngày hiển thị
         try {
             Date date = dbDateFormat.parse(income.getDate());
             holder.dateTextView.setText(displayDateFormat.format(date));
         } catch (ParseException e) {
-            holder.dateTextView.setText(income.getDate()); // Fallback to raw date
+            holder.dateTextView.setText(income.getDate()); // Fallback nếu lỗi
         }
 
-        // Format currency
+        // Định dạng số tiền
         holder.amountTextView.setText(currencyFormat.format(income.getAmount()));
 
-        // Handle description
+        // Hiển thị mô tả
         if (income.getDescription() != null && !income.getDescription().isEmpty()) {
             holder.descriptionTextView.setText(income.getDescription());
             holder.descriptionTextView.setVisibility(View.VISIBLE);
         } else {
-            holder.descriptionTextView.setText("Khoản thu nhập"); // Default text if no description
+            holder.descriptionTextView.setText("Khoản thu nhập"); // Text mặc định
             holder.descriptionTextView.setVisibility(View.VISIBLE);
         }
 
+        // Gán sự kiện click
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onItemClick(income);
